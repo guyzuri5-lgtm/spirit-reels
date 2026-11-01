@@ -96,6 +96,8 @@ def analyse(path):
                 runs.append([start * hop, (i - gap + 1) * hop]); start = None
     if start is not None:
         runs.append([start * hop, len(v) * hop])
+    # breaths / clicks: very short isolated bursts are not speech
+    runs = [r for r in runs if r[1] - r[0] >= 0.16] or runs
     onsets, sil = [], 0
     for k in range(len(v)):
         if v[k]:
@@ -352,6 +354,10 @@ def main():
     sid = spec['id']
     out = pathlib.Path(a.out or HERE / 'out' / sid); out.mkdir(parents=True, exist_ok=True)
     vo_raw = pathlib.Path(a.vo) if a.vo else out / 'vo_raw.wav'
+    stored = HERE / 'done' / f'{sid}.vo.ogg'
+    if not vo_raw.exists() and stored.exists():   # re-timing/re-render: reuse the original take, no new TTS call
+        print('using stored voice', stored)
+        subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(stored), '-ac', '1', '-ar', '24000', str(vo_raw)], check=True)
     if not vo_raw.exists():
         r = subprocess.run([sys.executable, str(HERE / 'tts.py'), spec.get('tts') or spec['script'], str(vo_raw)])
         if r.returncode == 3:

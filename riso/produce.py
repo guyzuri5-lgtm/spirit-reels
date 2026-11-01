@@ -48,7 +48,8 @@ def main():
             fail.write_text(str(n)); print(f"FAILED {sid} (attempt {n})"); continue
         data = json.loads((HERE / "out" / sid / "data.json").read_text())
         # keep the raw voice + timing next to the record, so sync can be checked or re-timed later
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(HERE / "out" / sid / "vo_raw.wav"), "-c:a", "libopus", "-b:a", "32k", str(DONE / f"{sid}.vo.ogg")])
+        if not (DONE / f"{sid}.vo.ogg").exists():
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", str(HERE / "out" / sid / "vo_raw.wav"), "-c:a", "libopus", "-b:a", "64k", str(DONE / f"{sid}.vo.ogg")])
         (DONE / f"{sid}.data.json").write_text(json.dumps(data, ensure_ascii=False))
         (DONE / f"{sid}.json").write_text(json.dumps({"id": sid, "queued_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
                                                        "duration": data["duration"], "beats": len(data["beats"]), "timing": data["timing_method"]}, ensure_ascii=False, indent=1))
