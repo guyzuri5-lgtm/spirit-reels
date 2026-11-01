@@ -114,7 +114,7 @@ const ICONS={
   moon:()=>new Path2D('M 40 -140 A 140 140 0 1 0 140 40 A 110 110 0 1 1 40 -140 Z'),
   eye:()=>new Path2D('M -150 0 C -90 -90 90 -90 150 0 C 90 90 -90 90 -150 0 Z'),
   bell:()=>new Path2D('M -100 90 C -100 0 -90 -110 0 -120 C 90 -110 100 0 100 90 L 130 110 L -130 110 Z'),
-  lungs:()=>new Path2D('M -20 -120 L -20 -40 C -60 -110 -130 -80 -135 20 C -140 100 -100 140 -50 120 C -20 105 -20 60 -20 20 Z M 20 -120 L 20 -40 C 60 -110 130 -80 135 20 C 140 100 100 140 50 120 C 20 105 20 60 20 20 Z'),
+  lungs:()=>new Path2D('M -10 -150 L 10 -150 L 10 -70 L -10 -70 Z M -35 -55 C -70 -110 -150 -70 -150 30 C -150 115 -100 145 -55 128 C -32 118 -30 70 -35 -55 Z M 35 -55 C 70 -110 150 -70 150 30 C 150 115 100 145 55 128 C 32 118 30 70 35 -55 Z'),
   brain:()=>new Path2D('M -10 -120 C -70 -140 -130 -90 -130 -30 C -160 10 -140 80 -90 100 C -70 140 -20 140 -10 110 Z M 10 -120 C 70 -140 130 -90 130 -30 C 160 10 140 80 90 100 C 70 140 20 140 10 110 Z'),
   sun:()=>{const p=new Path2D();p.arc(0,0,85,0,6.28);for(let i=0;i<12;i++){const a=i/12*6.283;p.moveTo(Math.cos(a)*110,Math.sin(a)*110);p.lineTo(Math.cos(a+0.13)*150,Math.sin(a+0.13)*150);p.lineTo(Math.cos(a-0.13)*150,Math.sin(a-0.13)*150);p.closePath()}return p},
   star:()=>{const p=new Path2D();for(let i=0;i<10;i++){const a=i/10*6.283-1.57,r=i%2?60:145;i?p.lineTo(Math.cos(a)*r,Math.sin(a)*r):p.moveTo(Math.cos(a)*r,Math.sin(a)*r)}p.closePath();return p},
@@ -228,7 +228,7 @@ BEATS.figure=function(b,t){
     const R=mulberry(404);const out=b.direction==='out';for(let i=0;i<16;i++){const st=R()*0.9,life=0.9+R()*0.3;const v=(u-st)/life;const sx0=R()*1080,sy0=-80-R()*200;const ang=R()*6;if(v<0||v>1)continue;const e=ss(out?1-v:v);
       const x=lerp(sx0,540+(R()-0.5)*60,e),y=lerp(sy0+300,1250,e);ctx.save();ctx.globalAlpha=v>0.85?(1-v)/0.15:1;particle(b.particle||['N','O'],x,y,1.2*(1-0.4*e),Math.sin(ang+u*3)*0.4);ctx.restore()}}
   if(b.mmm){for(let i=0;i<4;i++){const t0=b.t0+i*0.7;const u=(t-t0)/1.4;if(u<0||u>1)continue;const side=i%2?1:-1;const x=540+side*(170+u*160),y=1010-u*120;ctx.save();ctx.globalAlpha=Math.sin(u*Math.PI);ctx.translate(x,y);ctx.rotate(side*0.12);ctx.font='800 56px Rubik';ctx.direction='rtl';ctx.textAlign='center';ctx.fillStyle=C.pink;ctx.fillText(b.mmm===true?'מממממ':b.mmm,0,0);ctx.restore()}}
-  ctx.restore();overlays(b,t,dark)};
+  ctx.restore();overlays(b,t,dark||fr==='face')};
 
 // meter: counter panel climbing from→to, payoff at peak_at
 BEATS.meter=function(b,t){background(b,t);ctx.save();cam(t,b,540,H/2,1,1.05,[b.t0,b.peak_at??b.t1]);
@@ -321,10 +321,10 @@ BEATS.breath=function(b,t){const dark=background(b,t);ctx.save();cam(t,b,540,H/2
 BEATS.versus=function(b,t){ctx.drawImage(TEX.paper,0,0);const u=t-b.t0;const [sx,sy]=shakeOf(t,[b.t0,b.b_at??b.t0+0.6],22);ctx.save();ctx.translate(sx,sy);
   const A=b.a||{},B=b.b||{};const tb=b.b_at??(b.t0+(b.t1-b.t0)*0.45);
   const top=new Path2D();top.rect(0,0,W,940);ctx.save();ctx.clip(top);ctx.drawImage(TEX.navy,0,0);ctx.restore();
-  const ka=back(u/0.3);drawIcon(A.icon||'cross',540,520,1.25*ka,COL(A.color||'pink'),Math.sin(u*2)*0.05,t);
-  if(A.label)tagLabel(540,800,A.label,A.sub,u-0.1);
+  const ka=back(u/0.3);SOLID=true;drawIcon(A.icon||'cross',540,500,1.2*ka,COL(A.color||'pink'),Math.sin(u*2)*0.05,t);SOLID=false;
+  if(A.label)tagLabel(540,790,A.label,A.sub,u-0.1);
   if(t>=tb){const kb=back((t-tb)/0.3);const bot=new Path2D();bot.arc(540,1400,1100*easeOut((t-tb)/0.35),0,6.28);ctx.save();ctx.clip(new Path2D('M 0 940 L 1080 940 L 1080 1920 L 0 1920 Z'));htFill(bot,B.tint||'yellow',0.6);ctx.restore();
-    drawIcon(B.icon||'check',540,1180,1.1*kb,COL(B.color||'teal'),0,t);if(B.label)tagLabel(540,1420,B.label,B.sub,t-tb-0.1)}
+    drawIcon(B.icon||'check',540,1110,1.0*kb,COL(B.color||'teal'),0,t);if(B.label)tagLabel(540,1310,B.label,B.sub,t-tb-0.1)}
   tape(540,940,1200,46,-0.02,C.yellow);
   ctx.restore();overlays(b,t,true)};
 

@@ -1,0 +1,27 @@
+{
+ "id": "20261103-b",
+ "topic": "הלסת והאגן — שני קצוות של אותו ציר (סרעפת, רצפת אגן, בנדהות)",
+ "caption": "הלסת והאגן עובדים יחד, יותר ממה שנדמה.\nנסה עכשיו: שחרר את הלסת, ואהה נמוך ופתוח בנשיפה ארוכה.\nהרגשת משהו למטה?",
+ "tags": "רוחניות,יוגה,נשימה,רצפתהאגן,גוףונפש,מודעותגופנית,שחרור",
+ "script": "הלסת שלך והאגן שלך מחוברים, יותר ממה שנדמה. כשאתה שואף, הסרעפת יורדת, ורצפת האגן יורדת איתה. כשאתה מרים משהו כבד, מיתרי הקול נסגרים, ורצפת האגן נדרכת באותו רגע. במחקר אחד, נמצא קשר בין מתח בלסת למתח ברצפת האגן. וביוגה, זה ידוע כבר מאות שנים. נעילת הגרון ונעילת השורש, שני קצוות של אותו ערוץ. אז אם האגן שלך תפוס, אולי תתחיל דווקא מהפה. תשחרר את הלסת, ותוציא אהה נמוך ופתוח, בנשיפה ארוכה. ותרגיש מה קורה למטה.",
+ "tts": "הלסת שלך והאגן שלך מחוברים, יותר ממה שנדמה. כשאתה שואף, הסרעפת יורדת, ורצפת האגן יורדת איתה. כשאתה מרים משהו כבד, מיתרי הקול נסגרים, ורצפת האגן נדרכת באותו רגע. במחקר אחד, נמצא קשר בין מתח בלסת למתח ברצפת האגן. וביוגה, זה ידוע כבר מאות שנים. נעילת הגרון ונעילת השורש, שני קצוות של אותו ערוץ. אז אם האגן שלך תפוס, אולי תתחיל דווקא מהפה. תשחרר את הלסת, ותוציא אָהההה נמוך ופתוח, בנשיפה ארוכה. ותרגיש מה קורה למטה.",
+ "keywords": ["הלסת", "האגן", "מחוברים", "הסרעפת", "כבד", "נדרכת", "קשר", "הגרון", "השורש", "ערוץ", "מהפה", "אהה", "למטה"],
+ "live": {"text": "JAW · PELVIS"},
+ "beats": [
+  {"type": "word", "bg": "navy", "words": [{"text": "לסת", "at": "הלסת", "color": "yellow"}, {"text": "אגן", "at": "והאגן", "color": "pink"}]},
+  {"at": "מחוברים", "type": "figure", "framing": "wide", "bg": "pink", "mood": "surprised", "slam": {"text": "מחוברים", "at": "מחוברים", "color": "orange"}},
+  {"at": "כשאתה", "type": "breath", "bg": "navy", "period": 2.4, "in_label": "שאיפה", "out_label": "נשיפה", "tag": {"title": "סרעפת ואגן", "sub": "DIAPHRAGM · PELVIC FLOOR"}},
+  {"at": "ורצפת", "type": "wave", "bg": "paper", "lines": [{"color": "yellow", "amp": 110, "freq": 2, "label": "סרעפת", "sub": "DIAPHRAGM"}, {"color": "pink", "amp": 110, "freq": 2, "label": "רצפת האגן", "sub": "PELVIC FLOOR"}]},
+  {"at": "כשאתה#2", "type": "figure", "framing": "wide", "bg": "yellow", "mood": "tense", "slam": {"text": "כבד", "at": "כבד", "color": "pink"}},
+  {"at": "מיתרי", "type": "head", "framing": "wide", "bg": "navy", "regions": [{"name": "throat", "at": "נסגרים", "label": "מיתרי קול", "sub": "VOCAL CORDS", "pos": [210, 1180]}]},
+  {"at": "ורצפת#2", "type": "word", "bg": "pink", "sunburst": true, "words": [{"text": "נדרכת", "at": "נדרכת", "color": "pink"}, {"text": "באותו רגע", "at": "באותו", "color": "orange"}]},
+  {"at": "במחקר", "type": "cards", "bg": "teal", "tag": {"title": "מחקר אחד", "sub": "CORRELATION"}, "items": [{"text": "מתח בלסת", "sub": "JAW", "icon": "cross", "at": "קשר"}, {"text": "מתח באגן", "sub": "PELVIC FLOOR", "icon": "cross", "at": "בלסת"}]},
+  {"at": "וביוגה", "type": "hero", "bg": "navy", "icon": "lotus", "color": "pink", "particle": "star", "label": "יוגה"},
+  {"at": "נעילת", "type": "versus", "a": {"icon": "star", "color": "yellow", "label": "נעילת הגרון", "sub": "JALANDHARA"}, "b": {"icon": "star", "color": "pink", "label": "נעילת השורש", "sub": "MULA"}, "b_at": "ונעילת"},
+  {"at": "שני", "type": "hero", "bg": "paper", "icon": "spiral", "color": "teal", "particle": "dot", "label": "ערוץ אחד"},
+  {"at": "אז", "type": "figure", "framing": "face", "bg": "pink", "mood": "tense", "ring_mouth_at": "מהפה", "slam": {"text": "מהפה", "at": "מהפה", "color": "pink", "dark": true}},
+  {"at": "תשחרר", "type": "figure", "framing": "wide", "bg": "yellow", "mood": "calm", "rings": true, "mmm": "אהההה", "slam": {"text": "אהה", "at": "אהה", "color": "orange"}},
+  {"at": "בנשיפה", "type": "breath", "bg": "navy", "period": 3.0, "in_label": "שאיפה", "out_label": "אהה"},
+  {"at": "ותרגיש", "type": "figure", "framing": "porthole", "mood": "calm", "slam": {"text": "למטה", "at": "למטה", "color": "yellow"}}
+ ]
+}
