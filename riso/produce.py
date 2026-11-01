@@ -12,14 +12,29 @@ SPECS, DONE = HERE / "specs", HERE / "done"
 MAX_PER_RUN = 2
 
 
+def queued_ids():
+    """ids already waiting in the posting queue (so a spec is never produced twice)"""
+    r = subprocess.run(["git", "ls-remote", "--heads", "origin", "queue"], capture_output=True, text=True, cwd=HERE.parent)
+    if not r.stdout.strip():
+        return set()
+    subprocess.run(["git", "fetch", "-q", "--depth", "1", "origin", "queue"], cwd=HERE.parent)
+    t = subprocess.run(["git", "ls-tree", "--name-only", "FETCH_HEAD", "queue/"], capture_output=True, text=True, cwd=HERE.parent).stdout
+    return {l.split("/", 1)[1] for l in t.split() if "/" in l}
+
+
 def main():
     DONE.mkdir(exist_ok=True)
+    subprocess.run(["git", "pull", "-q", "--rebase", "origin", "main"], cwd=HERE.parent)   # see what other runs finished
+    inq = queued_ids()
     pending = []
     for p in sorted(SPECS.glob("*.json")):
         sid = json.loads(p.read_text())["id"]
         fail = DONE / f"{sid}.fail"
         if (DONE / f"{sid}.json").exists() or (fail.exists() and int(fail.read_text() or 0) >= 3):
             continue
+        if sid in inq:   # produced by an overlapping run but not recorded yet
+            print(f"{sid} is already in the posting queue - marking done"); (DONE / f"{sid}.json").write_text(json.dumps({"id": sid, "note": "found in queue"}))
+            fail.unlink(missing_ok=True); continue
         pending.append((sid, p))
     print("pending:", [s for s, _ in pending], flush=True)
     made = 0
