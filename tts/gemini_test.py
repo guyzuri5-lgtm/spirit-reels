@@ -33,7 +33,12 @@ for name, voice, style in RUNS:
         else: res = None
         if res: break
     if not res: continue
-    pcm = base64.b64decode(res["candidates"][0]["content"]["parts"][0]["inlineData"]["data"])
+    try:
+        pcm = base64.b64decode(res["candidates"][0]["content"]["parts"][0]["inlineData"]["data"])
+    except (KeyError, IndexError):
+        print("no audio", name, style, json.dumps(res.get("candidates", res))[:300], flush=True)
+        try: pcm = base64.b64decode(call(model, voice, STYLES[style])["candidates"][0]["content"]["parts"][0]["inlineData"]["data"])
+        except Exception as e: print("retry failed", name, style, flush=True); time.sleep(22); continue
     with wave.open(str(out / f"{name}_{style}.wav"), "wb") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(24000); w.writeframes(pcm)
     print("ok", model, name, style, f"{len(pcm)/48000:.1f}s", flush=True)

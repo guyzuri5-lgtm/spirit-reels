@@ -4,7 +4,30 @@
   "breathy": "Read this Hebrew text aloud in natural native Israeli Hebrew. Soft, breathy, intimate, almost whispered, close to the microphone, cool and slightly detached, a dark dreamy mood, unhurried with subtle pauses."
  },
  "runs": [
-  ["achernar","Achernar","agent"], ["despina","Despina","breathy"], ["vindemiatrix","Vindemiatrix","agent"],
-  ["gacrux","Gacrux","agent"], ["leda","Leda","breathy"], ["aoede","Aoede","breathy"]
+  [
+   "despina",
+   "Despina",
+   "breathy"
+  ],
+  [
+   "vindemiatrix",
+   "Vindemiatrix",
+   "agent"
+  ],
+  [
+   "gacrux",
+   "Gacrux",
+   "agent"
+  ],
+  [
+   "leda",
+   "Leda",
+   "breathy"
+  ],
+  [
+   "aoede",
+   "Aoede",
+   "breathy"
+  ]
  ]
 }
