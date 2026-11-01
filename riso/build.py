@@ -109,40 +109,47 @@ def analyse(path):
     return y, len(x) / sr, runs, onsets
 
 
+def align(phrases, runs):
+    """Align consecutive phrases <-> consecutive speech runs (boundaries coincide), by dynamic programming.
+    Cost: difference between each segment's share of speech time and its share of syllables,
+    a small penalty for many-to-one matches and a bonus for using long pauses as boundaries."""
+    K, G = len(phrases), len(runs)
+    syl = [sum(syllables(w) + 0.3 for _, w in ph) for ph in phrases]; ST = sum(syl)
+    sp = [b - a for a, b in runs]; SP = sum(sp)
+    gapl = [runs[j][0] - runs[j - 1][1] for j in range(1, G)] or [0.0]; GM = max(gapl) or 1.0
+    csyl = [0.0]
+    for x in syl: csyl.append(csyl[-1] + x)
+    csp = [0.0]
+    for x in sp: csp.append(csp[-1] + x)
+    ends = [ph[-1][1][-1] for ph in phrases]
+    INF = 1e9
+    dp = [[INF] * (G + 1) for _ in range(K + 1)]; bk = [[None] * (G + 1) for _ in range(K + 1)]
+    dp[0][0] = 0.0
+    for p in range(1, K + 1):
+        for g in range(1, G + 1):
+            for p0 in range(max(0, p - 8), p):
+                for g0 in range(max(0, g - 8), g):
+                    if dp[p0][g0] >= INF:
+                        continue
+                    c = 0.5 * abs((csp[g] - csp[g0]) / SP - (csyl[p] - csyl[p0]) / ST)
+                    for k in range(p0, p - 1):          # punctuation inside the segment that got no pause
+                        c += 0.15 if ends[k] in '.?!' else 0.06
+                    c += sum(0.02 + 0.1 * gapl[k - 1] / GM for k in range(g0 + 1, g))  # a pause inside a phrase
+                    if dp[p0][g0] + c < dp[p][g]:
+                        dp[p][g] = dp[p0][g0] + c; bk[p][g] = (p0, g0)
+    segs, p, g = [], K, G
+    while p > 0:
+        p0, g0 = bk[p][g]; segs.append((p0, p, g0, g)); p, g = p0, g0
+    segs.reverse()
+    return [sum(phrases[p0:p1], []) for p0, p1, _, _ in segs], [[list(r) for r in runs[g0:g1]] for _, _, g0, g1 in segs]
+
+
 def word_times(words, runs, onsets):
     """estimate the start time of each word (seconds from the trimmed start)."""
     phrases = [[(i, words[i]) for i in ph] for ph in phrases_of(words)]
-    groups = [[list(r)] for r in runs]
-    if len(runs) > len(phrases):
-        # choose which pauses are the punctuation breaks: DP matching phrase lengths (syllables) to speech time
-        K, G = len(phrases), len(runs)
-        syl = [sum(syllables(w) + 0.3 for _, w in ph) for ph in phrases]; ST = sum(syl)
-        sp = [b - a for a, b in runs]; SP = sum(sp)
-        gapl = [runs[j][0] - runs[j - 1][1] for j in range(1, G)]; GM = max(gapl)
-        INF = 1e9
-        dp = [[INF] * (G + 1) for _ in range(K + 1)]; back_ = [[0] * (G + 1) for _ in range(K + 1)]
-        dp[0][0] = 0
-        for p in range(1, K + 1):
-            for j in range(p, G - (K - p) + 1):
-                for i in range(p - 1, j):
-                    if dp[p - 1][i] >= INF:
-                        continue
-                    c = abs(sum(sp[i:j]) / SP - syl[p - 1] / ST)
-                    if j < G:
-                        c -= 0.35 * gapl[j - 1] / GM   # prefer long pauses as phrase breaks
-                    if dp[p - 1][i] + c < dp[p][j]:
-                        dp[p][j] = dp[p - 1][i] + c; back_[p][j] = i
-        cuts, j = [], G
-        for p in range(K, 0, -1):
-            i = back_[p][j]; cuts.append((i, j)); j = i
-        groups = [[list(r) for r in runs[i:j]] for i, j in reversed(cuts)]
-    method = 'pauses'
-    if len(groups) < len(phrases):
-        # fewer pauses than punctuation: merge the phrases whose boundaries got no pause (shortest first)
-        method = 'merged'
-        while len(phrases) > len(groups):
-            k = min(range(len(phrases) - 1), key=lambda j: len(phrases[j]) + len(phrases[j + 1]))
-            phrases[k] += phrases[k + 1]; del phrases[k + 1]
+    phrases, groups = align(phrases, runs)
+    one_to_one = sum(len(g) == 1 for g in groups)
+    method = f'dp {len(groups)} segments, {one_to_one} single-run'
     times = {}
     for ph, grp in zip(phrases, groups):
         sp = sum(b - a for a, b in grp)
@@ -152,7 +159,7 @@ def word_times(words, runs, onsets):
         for gi, (a, b) in enumerate(grp):
             if gi > 0:
                 fr = before / sp - 0.07
-                cand = [j for j in range(1, len(ph)) if j not in anchors]
+                cand = [j for j in range(1, len(ph)) if j not in anchors and j > max(anchors)]
                 if cand:
                     anchors[min(cand, key=lambda j: abs(cum[j] / tot - fr))] = a
             before += b - a
