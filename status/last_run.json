@@ -1,0 +1,15 @@
+{
+  "time": "2026-11-01T12:18:41+00:00",
+  "mode": "push",
+  "ok": true,
+  "item": "20261101-sample-breath",
+  "media_id": "17887838970690241",
+  "permalink": "https://www.instagram.com/reel/DfMtxpVCbRL/",
+  "remove": "20261101-sample-breath",
+  "log_tail": [
+    "token ok for @spiritualist_77777 via https://graph.facebook.com",
+    "uploaded: {'success': True, 'message': 'Upload Successful.'}",
+    "status: FINISHED Finished: Media has been uploaded and it is ready to be published.",
+    "POSTED 20261101-sample-breath: https://www.instagram.com/reel/DfMtxpVCbRL/"
+  ]
+}
