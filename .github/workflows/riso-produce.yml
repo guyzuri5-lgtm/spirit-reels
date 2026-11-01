@@ -1,0 +1,51 @@
+name: riso-produce
+# Turns new video specs (riso/specs/*.json) into finished reels: Gemini voiceover -> riso engine -> posting queue.
+# Runs when a spec is pushed, and a few times a day to retry specs that waited for the Gemini free quota
+# (it resets at midnight Pacific = 08:00 UTC in winter).
+on:
+  push:
+    branches: [main]
+    paths: ['riso/specs/**']
+  schedule:
+    - cron: '20 8 * * *'
+    - cron: '0 11 * * *'
+    - cron: '0 14 * * *'
+    - cron: '30 20 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: riso-produce
+  cancel-in-progress: false
+jobs:
+  produce:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          pip install -q numpy scipy
+          npm install --no-audit --no-fund && npx playwright install --with-deps chromium
+      - name: Produce pending videos
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          git config --global user.name "spirit-reels bot"; git config --global user.email "actions@users.noreply.github.com"
+          git config --global url."https://x-access-token:${{ github.token }}@github.com/".insteadOf "https://github.com/"
+          python3 riso/produce.py
+      - name: Record what was produced
+        if: always()
+        run: |
+          git add riso/done || true
+          git commit -qm "riso: produced [skip ci]" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 5; done
+      - name: Keep previews of the last video (for checking)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: riso-out
+          path: riso/out/*/video.mp4
+          retention-days: 7
+          if-no-files-found: ignore
