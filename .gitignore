@@ -3,3 +3,4 @@ engine/_page_*.html
 *.mp4
 !samples/*.mp4
 riso/out/
+__pycache__/
