@@ -11,7 +11,7 @@ variants = [
   ("ref_avri",       dict(exaggeration=0.6, cfg_weight=0.0, audio_prompt_path=ref)),
 ]
 for name, kw in variants:
-    for sid in ["s1", "s5", "s7a"]:
+    for sid in ["s1"]:
         t = time.time()
         wav = model.generate(segs[sid], language_id="he", **kw)
         ta.save(str(out / f"{name}_{sid}.wav"), wav, model.sr)
