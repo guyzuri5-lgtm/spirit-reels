@@ -1,0 +1,6 @@
+{
+  "name": "spirit-reels",
+  "private": true,
+  "description": "Automated Instagram reels publishing (+ optional gouache poster engine)",
+  "dependencies": { "playwright": "1.63.0" }
+}
