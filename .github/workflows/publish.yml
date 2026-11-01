@@ -48,6 +48,7 @@ jobs:
         id: pub
         env:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
           MODE: ${{ github.event_name == 'schedule' && 'schedule' || (github.event_name == 'push' && 'push' || 'manual') }}
           ITEM: ${{ github.event.inputs.item }}
         run: |
@@ -65,7 +66,7 @@ jobs:
           st = pathlib.Path('main/status'); st.mkdir(parents=True, exist_ok=True)
           (st / 'last_run.json').write_text(json.dumps(r, ensure_ascii=False, indent=2))
           with open(st / 'history.jsonl', 'a') as f:
-              f.write(json.dumps({k: r.get(k) for k in ('time', 'mode', 'ok', 'item', 'permalink', 'error')}, ensure_ascii=False) + "\n")
+              f.write(json.dumps({k: r.get(k) for k in ('time', 'mode', 'ok', 'item', 'permalink', 'facebook', 'error')}, ensure_ascii=False) + "\n")
           fp = st / 'failures.json'; fails = json.loads(fp.read_text()) if fp.exists() else {}
           if not r.get("ok") and r.get("item"):
               fails[r["item"]] = fails.get(r["item"], 0) + 1

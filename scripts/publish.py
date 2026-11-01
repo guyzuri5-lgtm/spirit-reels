@@ -13,6 +13,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 CFG = json.loads((ROOT / "config.json").read_text())
 VER = CFG["graph_version"]
 TOKEN = os.environ.get("IG_ACCESS_TOKEN", "").strip()
+FB_TOKEN = os.environ.get("FB_ACCESS_TOKEN", "").strip()
 
 
 def log(*a):
@@ -114,6 +115,37 @@ def publish(host, video, caption, public_url):
     return media_id, link
 
 
+def publish_facebook(video, caption):
+    """Post the same video as a Reel on the Facebook Page (optional; needs FB_ACCESS_TOKEN + fb_page_id)."""
+    pid = CFG.get("fb_page_id")
+    if not (FB_TOKEN and pid):
+        return None
+    host = "https://graph.facebook.com"
+    page = http("GET", f"{host}/{VER}/{pid}", {"fields": "id,name,access_token", "access_token": FB_TOKEN})
+    if str(page.get("id")) != str(pid):
+        raise RuntimeError(f"SAFETY STOP: token does not reach page {pid}")
+    want = (CFG.get("fb_page_name") or "").strip().lower()
+    if want and (page.get("name") or "").strip().lower() != want:
+        raise RuntimeError(f"SAFETY STOP: page is '{page.get('name')}', expected '{CFG.get('fb_page_name')}'")
+    ptok = page.get("access_token") or FB_TOKEN
+    start = http("POST", f"{host}/{VER}/{pid}/video_reels", {"upload_phase": "start", "access_token": ptok})
+    vid = start["video_id"]
+    http("POST", f"https://rupload.facebook.com/video-upload/{VER}/{vid}", data=video.read_bytes(),
+         headers={"Authorization": f"OAuth {ptok}", "offset": "0", "file_size": str(video.stat().st_size)}, timeout=600)
+    http("POST", f"{host}/{VER}/{pid}/video_reels", {"upload_phase": "finish", "video_id": vid, "video_state": "PUBLISHED", "description": caption, "access_token": ptok})
+    for _ in range(60):
+        st = http("GET", f"{host}/{VER}/{vid}", {"fields": "status,permalink_url", "access_token": ptok})
+        vs = (st.get("status") or {}).get("video_status")
+        log("facebook status:", vs)
+        if vs in ("ready", "published") or ((st.get("status") or {}).get("publishing_phase") or {}).get("status") == "complete":
+            link = st.get("permalink_url")
+            return {"video_id": vid, "permalink": ("https://www.facebook.com" + link) if link and link.startswith("/") else link}
+        if vs == "error":
+            raise RuntimeError(f"facebook processing failed: {st}")
+        time.sleep(10)
+    return {"video_id": vid, "permalink": None, "note": "still processing"}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--queue", required=True)
@@ -138,13 +170,28 @@ def main():
         if not video.exists():
             log("rendering spec with the gouache engine...")
             subprocess.run(["node", str(ROOT / "engine" / "render.js"), str(item / "spec.json"), str(video)], check=True)
-        host = detect_host()
-        public_url = f"https://raw.githubusercontent.com/{CFG['repo']}/{CFG['queue_branch']}/queue/{item.name}/video.mp4"
-        media_id, link = publish(host, video, build_caption(meta), public_url)
+        plats = meta.get("platforms") or ["instagram", "facebook"]
+        media_id = link = None
+        if "instagram" in plats:
+            host = detect_host()
+            public_url = f"https://raw.githubusercontent.com/{CFG['repo']}/{CFG['queue_branch']}/queue/{item.name}/video.mp4"
+            media_id, link = publish(host, video, build_caption(meta), public_url)
         res.update(ok=True, media_id=media_id, permalink=link)
+        fb = None
+        if "facebook" in plats:
+            try:
+                fb = publish_facebook(video, build_caption(meta))
+                if fb:
+                    log(f"FACEBOOK {item.name}: {fb.get('permalink') or fb.get('video_id')}")
+            except Exception as e:  # noqa: BLE001  (Instagram already posted: record, don't fail the item)
+                fb = {"error": str(e)[:500]}
+                log("facebook failed:", e)
+                if "instagram" not in plats:
+                    raise
+        res["facebook"] = fb
         out = pathlib.Path(a.posted) / f"{item.name}.json"
         out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps({**meta, "posted_at": res["time"], "media_id": media_id, "permalink": link}, ensure_ascii=False, indent=2))
+        out.write_text(json.dumps({**meta, "posted_at": res["time"], "media_id": media_id, "permalink": link, "facebook": fb}, ensure_ascii=False, indent=2))
         res["remove"] = item.name
         log(f"POSTED {item.name}: {link or media_id}")
     except SystemExit as e:

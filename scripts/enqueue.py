@@ -28,6 +28,7 @@ def main():
     ap.add_argument("--now", action="store_true")
     ap.add_argument("--id", default=None)
     ap.add_argument("--not-before", default=None)
+    ap.add_argument("--platforms", default=None, help="comma list, default all: instagram,facebook")
     a = ap.parse_args()
     src = pathlib.Path(a.source)
     if not src.exists():
@@ -44,6 +45,8 @@ def main():
     meta = {"caption": a.caption, "hashtags": [t.strip() for t in a.tags.split(",") if t.strip()], "post_now": a.now, "added_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
     if a.not_before:
         meta["not_before"] = a.not_before
+    if a.platforms:
+        meta["platforms"] = [p.strip() for p in a.platforms.split(",") if p.strip()]
     for attempt in range(3):
         tmp = pathlib.Path(tempfile.mkdtemp(prefix="queue-"))
         has = subprocess.run(["git", "ls-remote", "--exit-code", "--heads", REMOTE, CFG["queue_branch"]], capture_output=True).returncode == 0
