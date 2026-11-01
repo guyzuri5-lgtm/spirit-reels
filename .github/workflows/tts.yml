@@ -5,7 +5,7 @@ on:
     branches: [tts-voiceover]
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   tts:
     runs-on: ubuntu-latest
@@ -16,5 +16,8 @@ jobs:
         with: { python-version: '3.12' }
       - run: pip install -q edge-tts
       - run: python3 tts/make_vo.py
-      - uses: actions/upload-artifact@v4
-        with: { name: voiceover, path: out/ }
+      - name: Commit voiceover to this branch
+        run: |
+          rm -rf tts/out && mv out tts/out
+          git config user.name "spirit-reels bot"; git config user.email "actions@users.noreply.github.com"
+          git add tts/out && git commit -qm "voiceover files [skip ci]" && git push -q origin HEAD:tts-voiceover
