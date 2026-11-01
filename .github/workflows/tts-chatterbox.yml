@@ -1,0 +1,26 @@
+name: tts-chatterbox
+# Test of the free open-source Chatterbox Multilingual voice in Hebrew. Runs only on the tts-voiceover branch.
+on:
+  push:
+    branches: [tts-voiceover]
+    paths: ['tts/chatterbox_test.py', '.github/workflows/tts-chatterbox.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  cb:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+      - run: pip install -q chatterbox-tts dicta-onnx || pip install -q chatterbox-tts
+      - run: python3 tts/chatterbox_test.py
+      - name: Commit samples
+        if: always()
+        run: |
+          [ -d out_cb ] || exit 0
+          mkdir -p tts/out_cb && for f in out_cb/*.wav; do ffmpeg -loglevel error -y -i "$f" -b:a 96k "tts/out_cb/$(basename "${f%.wav}").mp3"; done
+          git config user.name "spirit-reels bot"; git config user.email "actions@users.noreply.github.com"
+          git add tts/out_cb && git commit -qm "chatterbox samples [skip ci]" && git pull -q --rebase && git push -q origin HEAD:tts-voiceover

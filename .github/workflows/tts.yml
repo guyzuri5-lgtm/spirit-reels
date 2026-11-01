@@ -3,6 +3,7 @@ name: tts
 on:
   push:
     branches: [tts-voiceover]
+    paths: ['tts/segments.json', 'tts/make_vo.py', '.github/workflows/tts.yml']
   workflow_dispatch:
 permissions:
   contents: write
