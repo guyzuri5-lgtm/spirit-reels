@@ -1,0 +1,25 @@
+name: tts-gemini
+# Hebrew voice samples with Gemini TTS (free tier). Runs only on the tts-voiceover branch.
+on:
+  push:
+    branches: [tts-voiceover]
+    paths: ['tts/gemini_test.py', '.github/workflows/tts-gemini.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  gm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tts/gemini_test.py
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Commit samples
+        if: always()
+        run: |
+          ls out_gm/*.wav >/dev/null 2>&1 || exit 0
+          mkdir -p tts/out_gm && cp out_gm/*.wav tts/out_gm/
+          git config user.name "spirit-reels bot"; git config user.email "actions@users.noreply.github.com"
+          git add tts/out_gm && git commit -qm "gemini samples [skip ci]" && git pull -q --rebase && git push -q origin HEAD:tts-voiceover
