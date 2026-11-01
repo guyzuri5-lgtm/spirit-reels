@@ -1,0 +1,20 @@
+name: tts
+# Generates Hebrew voiceover files (edge-tts, free) for tts/segments.json. Runs only on the tts-voiceover branch.
+on:
+  push:
+    branches: [tts-voiceover]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -q edge-tts
+      - run: python3 tts/make_vo.py
+      - uses: actions/upload-artifact@v4
+        with: { name: voiceover, path: out/ }
