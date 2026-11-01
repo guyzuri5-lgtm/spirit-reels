@@ -1,0 +1,25 @@
+name: tts-gemini-full
+# Full Hebrew voiceover with Gemini TTS (free tier) for tts/segments.json. Runs only on the tts-voiceover branch.
+on:
+  push:
+    branches: [tts-voiceover]
+    paths: ['tts/gemini_full.py', 'tts/gemini_full.json', 'tts/segments.json', '.github/workflows/tts-gemini-full.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  full:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tts/gemini_full.py
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      - name: Commit audio
+        if: always()
+        run: |
+          ls out_full/*.wav >/dev/null 2>&1 || exit 0
+          rm -rf tts/out_full && mkdir -p tts/out_full && cp out_full/*.wav tts/out_full/
+          git config user.name "spirit-reels bot"; git config user.email "actions@users.noreply.github.com"
+          git add tts/out_full && git commit -qm "gemini full voiceover [skip ci]" && git pull -q --rebase && git push -q origin HEAD:tts-voiceover
