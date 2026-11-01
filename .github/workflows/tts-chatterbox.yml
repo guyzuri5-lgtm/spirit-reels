@@ -21,6 +21,6 @@ jobs:
         if: always()
         run: |
           [ -d out_cb ] || exit 0
-          mkdir -p tts/out_cb && for f in out_cb/*.wav; do ffmpeg -loglevel error -y -i "$f" -b:a 96k "tts/out_cb/$(basename "${f%.wav}").mp3"; done
+          mkdir -p tts/out_cb && cp out_cb/*.wav tts/out_cb/
           git config user.name "spirit-reels bot"; git config user.email "actions@users.noreply.github.com"
           git add tts/out_cb && git commit -qm "chatterbox samples [skip ci]" && git pull -q --rebase && git push -q origin HEAD:tts-voiceover
