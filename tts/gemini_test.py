@@ -8,7 +8,11 @@ STYLES = {
   "story": "Read this Hebrew text aloud in natural native Israeli Hebrew, like a captivating documentary narrator revealing a surprising secret, curious and engaging:",
   "friend":"Read this Hebrew text aloud in natural native Israeli Hebrew, casual and friendly, like telling a friend something cool you just learned:",
 }
-RUNS = [("charon","Charon","warm"),("charon","Charon","story"),("orus","Orus","friend"),("sulafat","Sulafat","warm"),("achernar","Achernar","story")]
+cfg = pathlib.Path(__file__).with_name("gemini_runs.json")
+if cfg.exists():
+    c = json.loads(cfg.read_text()); STYLES.update(c["styles"]); RUNS = [tuple(r) for r in c["runs"]]
+else:
+    RUNS = [("charon","Charon","warm"),("charon","Charon","story"),("orus","Orus","friend"),("sulafat","Sulafat","warm"),("achernar","Achernar","story")]
 out = pathlib.Path("out_gm"); out.mkdir(exist_ok=True)
 def call(model, voice, prompt):
     body = {"contents":[{"parts":[{"text": prompt + "\n\n" + TEXT}]}],

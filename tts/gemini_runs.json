@@ -1,0 +1,10 @@
+{
+ "styles": {
+  "agent": "Read this Hebrew text aloud in natural native Israeli Hebrew. You are a mysterious female secret agent quietly sharing classified information: low, cool, controlled, slightly husky voice, close to the microphone, unhurried, with tension and small deliberate pauses.",
+  "breathy": "Read this Hebrew text aloud in natural native Israeli Hebrew. Soft, breathy, intimate, almost whispered, close to the microphone, cool and slightly detached, a dark dreamy mood, unhurried with subtle pauses."
+ },
+ "runs": [
+  ["achernar","Achernar","agent"], ["despina","Despina","breathy"], ["vindemiatrix","Vindemiatrix","agent"],
+  ["gacrux","Gacrux","agent"], ["leda","Leda","breathy"], ["aoede","Aoede","breathy"]
+ ]
+}

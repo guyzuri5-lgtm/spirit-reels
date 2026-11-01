@@ -3,7 +3,7 @@ name: tts-gemini
 on:
   push:
     branches: [tts-voiceover]
-    paths: ['tts/gemini_test.py', '.github/workflows/tts-gemini.yml']
+    paths: ['tts/gemini_test.py', 'tts/gemini_runs.json', '.github/workflows/tts-gemini.yml']
   workflow_dispatch:
 permissions:
   contents: write
