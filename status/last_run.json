@@ -1,21 +1,16 @@
 {
-  "time": "2026-11-03T15:57:30+00:00",
+  "time": "2026-11-03T22:14:33+00:00",
   "mode": "schedule",
   "ok": true,
-  "item": "20261103-b",
-  "media_id": "18028661432877502",
-  "permalink": "https://www.instagram.com/reel/DfSQelSEUSn/",
+  "item": "20261103-c",
+  "media_id": "18121457039090887",
+  "permalink": "https://www.instagram.com/reel/DfS7j6gEosY/",
   "facebook": null,
-  "remove": "20261103-b",
+  "remove": "20261103-c",
   "log_tail": [
     "token ok for @spiritualist_77777 via https://graph.facebook.com",
-    "resumable upload failed, falling back to video_url: POST https://rupload.facebook.com/ig-api-upload/v25.0/18121488482101117 -> HTTP 400: {\"debug_info\":{\"retriable\":false,\"type\":\"ProcessingFailedError\",\"message\":\"Request processing failed\"}}",
-    "status: IN_PROGRESS In Progress: Media is still being processed.",
-    "status: IN_PROGRESS In Progress: Media is still being processed.",
-    "status: IN_PROGRESS In Progress: Media is still being processed.",
-    "status: IN_PROGRESS In Progress: Media is still being processed.",
-    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "uploaded: {'success': True, 'message': 'Upload Successful.'}",
     "status: FINISHED Finished: Media has been uploaded and it is ready to be published.",
-    "POSTED 20261103-b: https://www.instagram.com/reel/DfSQelSEUSn/"
+    "POSTED 20261103-c: https://www.instagram.com/reel/DfS7j6gEosY/"
   ]
 }
