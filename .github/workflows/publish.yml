@@ -1,0 +1,99 @@
+name: publish
+# Posts the next video from the `queue` branch to Instagram.
+# - twice a day on schedule (oldest item first)
+# - right away when an item with "post_now": true is pushed to the queue branch
+# - manually from the Actions tab (optionally a specific item id)
+on:
+  schedule:
+    - cron: '0 8 * * *'    # 10:00 Israel winter time (11:00 summer)
+    - cron: '0 17 * * *'   # 19:00 Israel winter time (20:00 summer)
+  push:
+    branches: [queue]
+  workflow_dispatch:
+    inputs:
+      item:
+        description: 'queue item id to post now (leave empty for the next one)'
+        required: false
+permissions:
+  contents: write
+concurrency:
+  group: publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+      - name: Get the queue
+        run: |
+          if git ls-remote --exit-code --heads "https://github.com/${{ github.repository }}" queue >/dev/null; then
+            git clone --depth 1 --branch queue "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" q
+          else
+            mkdir -p q/queue
+          fi
+          ls -R q/queue | head -50 || true
+      - name: Install renderer (only if a queued item is a spec)
+        run: |
+          need=0
+          for d in q/queue/*/; do [ -f "$d/spec.json" ] && [ ! -f "$d/video.mp4" ] && need=1; done
+          if [ "$need" = 1 ]; then
+            sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+            cd main && npm install --no-audit --no-fund && npx playwright install --with-deps chromium
+          fi
+      - name: Publish
+        id: pub
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
+          MODE: ${{ github.event_name == 'schedule' && 'schedule' || (github.event_name == 'push' && 'push' || 'manual') }}
+          ITEM: ${{ github.event.inputs.item }}
+        run: |
+          set -o pipefail
+          python3 main/scripts/publish.py --queue q/queue --posted main/posted --mode "$MODE" --only "$ITEM" \
+            --result result.json --failures main/status/failures.json 2>&1 | tee publish.log
+      - name: Record status
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          r = json.loads(pathlib.Path('result.json').read_text()) if pathlib.Path('result.json').exists() else {"ok": False, "error": "publisher did not start"}
+          log = pathlib.Path('publish.log').read_text(errors='replace').splitlines()[-40:] if pathlib.Path('publish.log').exists() else []
+          r["log_tail"] = log
+          st = pathlib.Path('main/status'); st.mkdir(parents=True, exist_ok=True)
+          (st / 'last_run.json').write_text(json.dumps(r, ensure_ascii=False, indent=2))
+          with open(st / 'history.jsonl', 'a') as f:
+              f.write(json.dumps({k: r.get(k) for k in ('time', 'mode', 'ok', 'item', 'permalink', 'facebook', 'error')}, ensure_ascii=False) + "\n")
+          fp = st / 'failures.json'; fails = json.loads(fp.read_text()) if fp.exists() else {}
+          if not r.get("ok") and r.get("item"):
+              fails[r["item"]] = fails.get(r["item"], 0) + 1
+          fp.write_text(json.dumps(fails, indent=2))
+          pathlib.Path('remove.txt').write_text(r.get("remove") or "")
+          PY
+          cd main
+          git config user.name "spirit-reels bot"; git config user.email "actions@users.noreply.github.com"
+          git add -A posted status
+          git commit -qm "publish: $(cat ../remove.txt 2>/dev/null || echo run) [skip ci]" || exit 0
+          for i in 1 2 3; do git pull -q --rebase origin main && git push -q origin HEAD:main && break; sleep 5; done
+      - name: Remove posted item from the queue (and compact the branch)
+        if: always()
+        run: |
+          ID="$(cat remove.txt 2>/dev/null || true)"
+          [ -n "$ID" ] || exit 0
+          for i in 1 2 3; do
+            rm -rf q2 && git clone -q --depth 1 --branch queue "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" q2 || exit 0
+            cd q2
+            BASE=$(git rev-parse HEAD)
+            rm -rf "queue/$ID"; mkdir -p queue .github/workflows; touch queue/.keep; cp ../main/.github/workflows/publish.yml .github/workflows/
+            git config user.name "spirit-reels bot"; git config user.email "actions@users.noreply.github.com"
+            git checkout -q --orphan compact && git add -A && git commit -qm "queue (posted $ID removed)" || true
+            if git push -q --force-with-lease=queue:$BASE origin compact:queue; then exit 0; fi
+            cd ..; sleep 5
+          done
+          echo "could not update the queue branch"; exit 1
+      - name: Fail if not posted
+        if: always()
+        run: python3 -c "import json,sys; r=json.load(open('result.json')); sys.exit(0 if r.get('ok') else 1)"
