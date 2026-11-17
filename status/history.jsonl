@@ -32,3 +32,4 @@
 {"time": "2026-11-16T18:06:04+00:00", "mode": "schedule", "ok": false, "item": "20261115-a", "permalink": null, "facebook": null, "error": "processing failed: {'id': '18122929103101117', 'status': 'Error: Media upload has failed with error code 2207077', 'status_code': 'ERROR'}"}
 {"time": "2026-11-17T00:41:15+00:00", "mode": "schedule", "ok": true, "item": "20261115-a", "permalink": "https://www.instagram.com/reel/Df0qvrrnBL3/", "facebook": null, "error": null}
 {"time": "2026-11-17T17:27:53+00:00", "mode": "schedule", "ok": true, "item": "20261115-b", "permalink": "https://www.instagram.com/reel/Df2eBcPnGA8/", "facebook": null, "error": null}
+{"time": "2026-11-17T23:46:45+00:00", "mode": "schedule", "ok": true, "item": "20261116-a", "permalink": "https://www.instagram.com/reel/Df3JVC3EggF/", "facebook": null, "error": null}
