@@ -1,23 +1,20 @@
 {
-  "time": "2026-11-16T18:06:04+00:00",
+  "time": "2026-11-17T00:41:15+00:00",
   "mode": "schedule",
-  "ok": false,
+  "ok": true,
   "item": "20261115-a",
-  "error": "processing failed: {'id': '18122929103101117', 'status': 'Error: Media upload has failed with error code 2207077', 'status_code': 'ERROR'}",
+  "media_id": "18152097481488992",
+  "permalink": "https://www.instagram.com/reel/Df0qvrrnBL3/",
+  "facebook": null,
+  "remove": "20261115-a",
   "log_tail": [
     "token ok for @spiritualist_77777 via https://graph.facebook.com",
-    "resumable upload failed, falling back to video_url: POST https://rupload.facebook.com/ig-api-upload/v25.0/18122928977101117 -> HTTP 400: {\"debug_info\":{\"retriable\":false,\"type\":\"ProcessingFailedError\",\"message\":\"Request processing failed\"}}",
+    "resumable upload failed, falling back to video_url: POST https://rupload.facebook.com/ig-api-upload/v25.0/18122958830101117 -> HTTP 400: {\"debug_info\":{\"retriable\":false,\"type\":\"ProcessingFailedError\",\"message\":\"Request processing failed\"}}",
     "status: IN_PROGRESS In Progress: Media is still being processed.",
-    "status: ERROR Error: Media upload has failed with error code 2207077",
-    "Traceback (most recent call last):",
-    "  File \"/home/runner/work/spirit-reels/spirit-reels/main/scripts/publish.py\", line 208, in <module>",
-    "    main()",
-    "    ~~~~^^",
-    "  File \"/home/runner/work/spirit-reels/spirit-reels/main/scripts/publish.py\", line 178, in main",
-    "    media_id, link = publish(host, video, build_caption(meta), public_url)",
-    "                     ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^",
-    "  File \"/home/runner/work/spirit-reels/spirit-reels/main/scripts/publish.py\", line 106, in publish",
-    "    raise RuntimeError(f\"processing failed: {st}\")",
-    "RuntimeError: processing failed: {'id': '18122929103101117', 'status': 'Error: Media upload has failed with error code 2207077', 'status_code': 'ERROR'}"
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: FINISHED Finished: Media has been uploaded and it is ready to be published.",
+    "POSTED 20261115-a: https://www.instagram.com/reel/Df0qvrrnBL3/"
   ]
 }
