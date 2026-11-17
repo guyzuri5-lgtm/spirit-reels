@@ -1,20 +1,24 @@
 {
-  "time": "2026-11-17T00:41:15+00:00",
+  "time": "2026-11-17T17:27:53+00:00",
   "mode": "schedule",
   "ok": true,
-  "item": "20261115-a",
-  "media_id": "18152097481488992",
-  "permalink": "https://www.instagram.com/reel/Df0qvrrnBL3/",
+  "item": "20261115-b",
+  "media_id": "18212885539321412",
+  "permalink": "https://www.instagram.com/reel/Df2eBcPnGA8/",
   "facebook": null,
-  "remove": "20261115-a",
+  "remove": "20261115-b",
   "log_tail": [
     "token ok for @spiritualist_77777 via https://graph.facebook.com",
-    "resumable upload failed, falling back to video_url: POST https://rupload.facebook.com/ig-api-upload/v25.0/18122958830101117 -> HTTP 400: {\"debug_info\":{\"retriable\":false,\"type\":\"ProcessingFailedError\",\"message\":\"Request processing failed\"}}",
+    "resumable upload failed, falling back to video_url: POST https://rupload.facebook.com/ig-api-upload/v25.0/18123040553101117 -> HTTP 400: {\"debug_info\":{\"retriable\":false,\"type\":\"ProcessingFailedError\",\"message\":\"Request processing failed\"}}",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
     "status: IN_PROGRESS In Progress: Media is still being processed.",
     "status: IN_PROGRESS In Progress: Media is still being processed.",
     "status: IN_PROGRESS In Progress: Media is still being processed.",
     "status: IN_PROGRESS In Progress: Media is still being processed.",
     "status: FINISHED Finished: Media has been uploaded and it is ready to be published.",
-    "POSTED 20261115-a: https://www.instagram.com/reel/Df0qvrrnBL3/"
+    "POSTED 20261115-b: https://www.instagram.com/reel/Df2eBcPnGA8/"
   ]
 }
