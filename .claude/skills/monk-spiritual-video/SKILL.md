@@ -93,6 +93,16 @@ These give each scene the reference's constant small activity. Reach for them ev
 | `FROMWORD(s,n,t,word,svg,tx,ty)` | The object is born out of a caption word (a red underline flashes under it) and flies to its place; pass `t = null` to start right after the word appears | the key word becomes the thing |
 | `reach(x,y,w,ang)` | The monk's bare arm reaching in from the bottom edge, fingertip at (x,y) | with `IN … 'up'` + `PRESS`: he touches the stage |
 
+| `HOP(s,n,t,[[dx,dy],…],{at,flip,h})` | A stage figure (e.g. `miniMonk`) jumps along points with a dotted trail, lands with a squash; `flip:[i]` = a somersault on hop i | climbing chakras, steps, days |
+| `mountain(x,y,w,h,{flag})` + `ghost(s,n,mountainPath(…))` + `COLLAPSE(s,n,t,{at,dust})` + `GHOST(s,n,t)` | A black peak is crushed flat with a red shock line; its dashed outline stays behind | "what looked hard" / the thoughts that were there |
+| `stepper(s,n,x,y,labels)` + `STEP(s,n,t,i)` | Dots joined by a dashed line (right → left); step i fills red and pulses, the one before turns into a green check | inhale → hold → exhale, any short sequence |
+| `checklist(s,n,x,y,items)` + `CHECK(s,n,t,i,{ok})` | Rows with spinning loaders; each turns into a check (or a red cross) and a grey bar moves down | body scan, a practice checklist |
+| `barGraph(s,n,x,y,w,h,vals,{weak})` + `GROW` / `SCAN` / `FIXBARS` | Bars rise; a magnifier slides along (bars magnified inside), turns red over the weak bars; then they grow back with red dots on top | a breath / heart / stress graph that evens out |
+| `calendar(s,n,x,y,[[big,small],…],{head})` + `TEAR(s,n,t,i)` | A tear-off pad; each page rips away to the next | 21 days of practice, "tomorrow again" |
+| `scales(s,n,x,y,{arm,left,right})` + `TIP(s,n,t,deg)` | A balance whose beam and pans tip and wobble (positive = right side down) | balance, this vs. that |
+| `MONKPOP(s,t,k)` / `MONKZOOM(s,t0,t1,k)` | The presenter grows for a beat / holds bigger, then settles | the payoff line, a punchline |
+
+Wrap these props with `s.W(n, …)` when you want `IN` and wiggle on them. All the verbs can be called before their prop is drawn in `props`.
 Particle kinds: `confetti`, `heart`, `dot`, `light`, `leaf`, `petal`, `coin`, `star`, `spark`.
 **Seek rule:** HyperFrames seeks with callbacks turned off, so never use `onUpdate`/`onComplete`; these verbs bake every frame into `tl.set`/`fromTo` at build time. `ROLL` and `TYPE` may be called before their `rollNum`/`typeLine` is drawn in `props`: they run after it.
 

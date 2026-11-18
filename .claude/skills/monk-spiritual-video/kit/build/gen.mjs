@@ -450,6 +450,164 @@ function FROMWORD(s, n, t, word, svg, tx, ty, { d = .42 } = {}) {
 /* the monk's arm reaching into the stage from the bottom edge (fingertip at x,y). Animate with IN … 'up' and MOVE. */
 const reach = (x, y, w = 330, ang = -28, hand = 'point') => MONKREACH(x, y, w, ang, hand);
 
+/* =====================================================================
+   v7b (2026-11-18): the rest of the reference reel's moves.
+   HOP (a figure jumping along a path with a dotted trail and flips) · mountain / ghost / COLLAPSE ·
+   stepper / STEP · checklist / CHECK · barGraph / GROW / SCAN / FIXBARS · calendar / TEAR · scales / TIP ·
+   MONKPOP / MONKZOOM (the presenter grows for a beat). Same seek rule: everything baked into set / fromTo.
+   ===================================================================== */
+/* HOP: prop n jumps from where it is drawn through pts = [[dx,dy], …] (offsets from its drawn spot, not deltas).
+   at = [x,y] its base point on the stage, needed for the dotted trail. flip = hop indexes that do a somersault. */
+const later = (s, f) => (s.later = s.later || []).push(f);   // verbs called before their prop is drawn run after props()
+function HOP(s, n, t, pts, { d = .3, h = 46, gap = .06, at, trail = 1, flip = [], squash = 1 } = {}) {
+  const sel = J(s.q(n)); let px = 0, py = 0, tt = t;
+  pts.forEach(([x, y], i) => {
+    const top = Math.min(py, y) - h;
+    s.a(`tl.to(${sel},{x:${x},duration:${d},ease:"power1.inOut"},${r3(tt)});`);
+    s.a(`tl.to(${sel},{y:${r3(top)},duration:${r3(d / 2)},ease:"power2.out"},${r3(tt)});`);
+    s.a(`tl.to(${sel},{y:${y},duration:${r3(d / 2)},ease:"power2.in"},${r3(tt + d / 2)});`);
+    if (flip.includes(i)) s.a(`tl.fromTo(${sel},{rotation:0},{rotation:-360,transformOrigin:"50% 50%",duration:${d},ease:"power1.inOut",immediateRender:false},${r3(tt)});`);
+    if (squash) { s.a(`tl.to(${sel},{scaleY:.84,scaleX:1.1,transformOrigin:"50% 100%",duration:.05},${r3(tt + d)});`); s.a(`tl.to(${sel},{scaleY:1,scaleX:1,duration:.14,ease:"back.out(3)"},${r3(tt + d + .05)});`); }
+    if (trail && at) for (let k = 1; k <= 5; k++) { const u = k / 6, tx = at[0] + px + (x - px) * u, ty = at[1] + py + (y - py) * u - h * 4 * u * (1 - u);
+      const dot = pAdd(s, tx, ty, `<circle r="1.8" fill="${MUTE}"/>`); s.a(`tl.set("${dot}",{opacity:.8},${r3(tt + d * u)});tl.to("${dot}",{opacity:0,duration:.3},${r3(tt + d * u + .7)});`); }
+    px = x; py = y; tt += d + gap;
+  });
+}
+
+/* a jagged black mountain with a snow cap and an optional flag on the peak; mountainPath() gives its outline for ghost() */
+const mountainPath = (x, y, w, h) => { const L = x - w / 2; return `M${L} ${y} L${L + w * .16} ${y - h * .34} L${L + w * .26} ${y - h * .28} L${L + w * .42} ${y - h * .66} L${L + w * .52} ${y - h * .56} L${L + w * .68} ${y - h} L${L + w * .8} ${y - h * .52} L${L + w * .9} ${y - h * .36} L${L + w} ${y}Z`; };
+const mountain = (x, y, w, h, { flag = '', fc = CARD, tc = INK } = {}) => { const L = x - w / 2, px = L + w * .68, py = y - h;
+  return `<path d="${mountainPath(x, y, w, h)}" fill="${INK}" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/><path d="M${px} ${py} L${px - w * .07} ${py + h * .2} L${px - w * .03} ${py + h * .16} L${px} ${py + h * .24} L${px + w * .035} ${py + h * .15} L${px + w * .055} ${py + h * .21}Z" fill="#fff"/>
+  ${flag ? `<path d="M${px} ${py} V${py - 46}" stroke="${INK}" stroke-width="2.4"/><path d="M${px} ${py - 46} h${flag.length * 9 + 14} l-5 9 l5 9 H${px}Z" fill="${fc}" stroke="${INK}" stroke-width="1.8"/>${T(px + (flag.length * 9 + 10) / 2, py - 32, 11, flag, { c: tc, w: 800, f: HEB, ls: 0 })}` : ''}`; };
+/* ghost: the dashed grey outline that stays behind after a shape is gone. GHOST fades it in. */
+const ghost = (s, n, d) => `<path id="${s.id}-${n}" d="${d}" fill="none" stroke="${MUTE}" stroke-width="1.6" stroke-dasharray="4 5" stroke-linejoin="round" opacity="0"/>`;
+const GHOST = (s, n, t) => s.a(`tl.fromTo("${s.q(n)}",{opacity:0},{opacity:.85,duration:.25,immediateRender:false},${r3(t)});`);
+/* COLLAPSE: the prop is crushed flat into the ground, with a red shock line under it (at = [x,y,w] of its base) */
+function COLLAPSE(s, n, t, { at, dust: du, d = .22 } = {}) {
+  const sel = J(s.q(n));
+  s.a(`tl.to(${sel},{rotation:-4,transformOrigin:"50% 100%",duration:.08,ease:"power2.out"},${r3(t)});`);
+  s.a(`tl.to(${sel},{scaleY:.05,scaleX:1.06,rotation:0,transformOrigin:"50% 100%",duration:${d},ease:"power3.in"},${r3(t + .08)});`);
+  if (at) { const f = pAdd(s, at[0], at[1], `<ellipse rx="${at[2] * .45}" ry="7" fill="${RED}" opacity=".55"/><ellipse rx="${at[2] * .25}" ry="3" fill="${RED}"/>`);
+    s.a(`tl.fromTo("${f}",{opacity:1,scaleX:.3,transformOrigin:"50% 50%"},{opacity:0,scaleX:1.4,duration:.45,ease:"power2.out",immediateRender:false},${r3(t + .08 + d)});`); }
+  if (du) DUST(s, du, t + .08 + d);
+  PUNCH(s, t + .08 + d, 1.035);
+}
+
+/* stepper: N dots joined by a dashed line, labels under them (Hebrew: runs right → left). STEP(s,n,t,i) makes dot i the
+   active one: the line to it draws in red, it fills and pulses, the one before turns into a green check. */
+function stepper(s, n, x, y, labels, { gap = 92, r = 10, dir = -1, size = 11 } = {}) {
+  const id = `${s.id}-${n}`, X = i => x + dir * i * gap;
+  let g = '';
+  labels.forEach((_, i) => { if (i) g += `<line x1="${X(i - 1)}" y1="${y}" x2="${X(i)}" y2="${y}" stroke="${LINE}" stroke-width="2.4" stroke-dasharray="3 5"/><line id="${id}-l${i}" x1="${X(i - 1) + dir * r}" y1="${y}" x2="${X(i) - dir * r}" y2="${y}" stroke="${RED}" stroke-width="2.6" stroke-dasharray="4 4" pathLength="1" opacity="0"/>`; });
+  labels.forEach((lb, i) => { g += `<circle cx="${X(i)}" cy="${y}" r="${r}" fill="${CARD}" stroke="${MUTE}" stroke-width="1.8"/><circle id="${id}-f${i}" cx="${X(i)}" cy="${y}" r="${r}" fill="${RED}" stroke="${INK}" stroke-width="1.6" opacity="0"/>
+    <g id="${id}-c${i}" opacity="0">${check(X(i), y, r + 1)}</g><circle id="${id}-p${i}" cx="${X(i)}" cy="${y}" r="${r + 6}" fill="none" stroke="${RED}" stroke-width="1.6" opacity="0"/>
+    ${T(X(i), y + r + 16, size, lb, { c: MUTE, w: 700, f: HEB, ls: 0 })}<g id="${id}-t${i}" opacity="0">${T(X(i), y + r + 16, size, lb, { c: INK, w: 800, f: HEB, ls: 0 })}</g>`; });
+  (s.steps = s.steps || {})[n] = 1;
+  return `<g>${g}</g>`;   // wrap with s.W(n, …) to IN / wiggle it
+}
+function STEP(s, n, t, i) {
+  if (!s.steps?.[n]) return later(s, () => STEP(s, n, t, i));
+  const id = `${s.id}-${n}`;
+  if (i) { s.a(`tl.fromTo("#${id}-l${i}",{opacity:1,attr:{"stroke-dashoffset":1}},{attr:{"stroke-dashoffset":0},duration:.22,ease:"power2.out",immediateRender:false},${r3(t)});`);
+    s.a(`tl.set("#${id}-f${i - 1},#${id}-t${i - 1}",{opacity:0},${r3(t + .18)});`); IN(s, `#${id}-c${i - 1}`, t + .18, 'pophard'); }
+  IN(s, `#${id}-f${i}`, t + .2, 'pophard'); s.a(`tl.set("#${id}-t${i}",{opacity:1},${r3(t + .2)});`);
+  s.a(`tl.fromTo("#${id}-p${i}",{opacity:.9,scale:.6,transformOrigin:"50% 50%"},{opacity:0,scale:1.6,duration:.5,ease:"power2.out",immediateRender:false},${r3(t + .24)});`);
+}
+
+/* checklist: rows with a spinning loader each (spins the whole scene until CHECK). CHECK(s,n,t,i,{ok}) swaps row i's
+   spinner for a green check (or red cross with ok:false) and moves the grey highlight bar to the next row. */
+function checklist(s, n, x, y, items, { w = 250, row = 30, size = 13 } = {}) {
+  const id = `${s.id}-${n}`; let g = `<rect id="${id}-hl" x="${x + 4}" y="${y + 3}" width="${w - 8}" height="${row - 6}" rx="7" fill="#e9e4da"/>`;
+  items.forEach((lb, i) => { const ry = y + i * row + row / 2, sx = x + w - 20;
+    g += `<g id="${id}-s${i}"><circle cx="${sx}" cy="${ry}" r="7" fill="none" stroke="${LINE}" stroke-width="2.2"/><path d="M${sx} ${ry - 7} A7 7 0 0 1 ${sx + 7} ${ry}" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/></g>
+      <g id="${id}-k${i}" opacity="0">${check(sx, ry, 8)}</g><g id="${id}-x${i}" opacity="0">${cross(sx, ry, 8)}</g>
+      ${T(sx - 18, ry + size * .36, size, lb, { c: INK, w: 700, f: HEB, a: 'end', ls: 0 })}`;
+    s.a(`tl.fromTo("#${id}-s${i}",{rotation:0,svgOrigin:"${sx} ${ry}"},{rotation:${Math.ceil(s.dur / .7) * 360},svgOrigin:"${sx} ${ry}",duration:${r3(Math.ceil(s.dur / .7) * .7)},ease:"none"},0);`); });
+  (s.lists = s.lists || {})[n] = { y, row };
+  return `<g>${card(s.id, x, y - 6, w, items.length * row + 12, '')}${g}</g>`;
+}
+function CHECK(s, n, t, i, o = {}) {
+  if (!s.lists?.[n]) return later(s, () => CHECK(s, n, t, i, o)); const { ok = true } = o;
+  const id = `${s.id}-${n}`, L = s.lists[n];
+  s.a(`tl.set("#${id}-s${i}",{opacity:0},${r3(t)});`); IN(s, `#${id}-${ok ? 'k' : 'x'}${i}`, t, 'pophard');
+  s.a(`tl.to("#${id}-hl",{y:${(i + 1) * L.row},duration:.18,ease:"power2.inOut"},${r3(t + .05)});`);
+}
+
+/* barGraph: a card with bars growing from the floor. weak = indexes of the low bars (the "weak moment").
+   GROW(s,n,t) bars rise left → right · SCAN(s,n,t,{from,to,d}) a magnifier slides along (bars magnified inside the lens,
+   lens tints red where it stops) · FIXBARS(s,n,t,h) the weak bars grow to height h with red dots on top. */
+function barGraph(s, n, x, y, w, h, vals, { weak = [], c = INK, label = '' } = {}) {
+  const id = `${s.id}-${n}`, N = vals.length, bw = (w - 24) / N, base = y + h - 14, bh = v => v * (h - 34);
+  const bars = (pre) => vals.map((v, i) => `<rect ${pre ? `id="${id}-b${i}"` : ''} x="${r3(x + 12 + i * bw + bw * .18)}" y="${r3(base - bh(v))}" width="${r3(bw * .64)}" height="${r3(bh(v))}" rx="1.5" fill="${c}"/>`).join('');
+  const dots = weak.map(i => `<g id="${id}-d${i}" opacity="0">${[0, 1, 2].map(k => `<circle cx="${r3(x + 12 + i * bw + bw / 2)}" cy="${r3(base - bh(.8) - 6 - k * 6)}" r="${2.2 - k * .4}" fill="${RED}"/>`).join('')}</g>`).join('');
+  const cy = base - (h - 34) * .45, R = 26;
+  (s.graphs = s.graphs || {})[n] = { x, w, N, bw, base, bh, weak, cy };
+  return `<g>${card(s.id, x, y, w, h, '', { label })}<line x1="${x + 10}" y1="${base}" x2="${x + w - 10}" y2="${base}" stroke="${LINE}" stroke-width="1.4"/>${bars(1)}${dots}
+  <defs><clipPath id="${id}-lc"><circle id="${id}-lcc" cx="${x}" cy="${r3(cy)}" r="${R}"/></clipPath></defs>
+  <g id="${id}-lens" opacity="0"><g clip-path="url(#${id}-lc)"><rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${CARD}"/><g id="${id}-mag" transform="translate(${x} ${r3(cy)}) scale(1.7) translate(${-x} ${r3(-cy)})">${bars(0)}</g><circle id="${id}-tint" cx="${x}" cy="${r3(cy)}" r="${R}" fill="${RED}" opacity="0"/></g>
+  <g id="${id}-ring" transform="translate(${x} ${r3(cy)})"><circle r="${R}" fill="none" stroke="${INK}" stroke-width="3.4"/><path d="M${R * .72} ${R * .72} l16 16" stroke="${INK}" stroke-width="6" stroke-linecap="round"/></g></g></g>`;
+}
+function GROW(s, n, t, o = {}) {
+  if (!s.graphs?.[n]) return later(s, () => GROW(s, n, t, o)); const { step = .035 } = o;
+  const G = s.graphs[n]; for (let i = 0; i < G.N; i++) s.a(`tl.fromTo("#${s.id}-${n}-b${i}",{scaleY:0,transformOrigin:"50% 100%"},{scaleY:1,transformOrigin:"50% 100%",duration:.22,ease:"back.out(1.6)",immediateRender:true},${r3(t + i * step)});`);
+}
+function SCAN(s, n, t, o = {}) {
+  if (!s.graphs?.[n]) return later(s, () => SCAN(s, n, t, o)); let { from = 0, to, d = .7, tint = 1 } = o;
+  const G = s.graphs[n], id = `${s.id}-${n}`, X = i => r3(G.x + 12 + i * G.bw + G.bw / 2); to = to ?? G.N - 1;
+  const a = X(from), b = X(to), cy = r3(G.cy), tr = v => `translate(${v} ${cy}) scale(1.7) translate(${-v} ${-cy})`;
+  s.a(`tl.set("#${id}-lens",{opacity:1},${r3(t)});`);
+  s.a(`tl.fromTo("#${id}-ring",{attr:{transform:"translate(${a} ${cy})"}},{attr:{transform:"translate(${b} ${cy})"},duration:${d},ease:"power2.inOut",immediateRender:false},${r3(t)});`);
+  s.a(`tl.fromTo("#${id}-lcc,#${id}-tint",{attr:{cx:${a}}},{attr:{cx:${b}},duration:${d},ease:"power2.inOut",immediateRender:false},${r3(t)});`);
+  s.a(`tl.fromTo("#${id}-mag",{attr:{transform:"${tr(a)}"}},{attr:{transform:"${tr(b)}"},duration:${d},ease:"power2.inOut",immediateRender:false},${r3(t)});`);
+  if (tint) s.a(`tl.to("#${id}-tint",{opacity:.22,duration:.12},${r3(t + d)});`);
+}
+function FIXBARS(s, n, t, h = .8, o = {}) {
+  if (!s.graphs?.[n]) return later(s, () => FIXBARS(s, n, t, h, o)); const { hideLens = 1 } = o;
+  const G = s.graphs[n], id = `${s.id}-${n}`;
+  if (hideLens) s.a(`tl.to("#${id}-lens",{opacity:0,duration:.12},${r3(t)});`);
+  G.weak.forEach((i, k) => { const el = `#${id}-b${i}`;
+    s.a(`tl.to("${el}",{attr:{y:${r3(G.base - G.bh(h))},height:${r3(G.bh(h))}},duration:.26,ease:"back.out(1.8)"},${r3(t + .05 + k * .05)});`);
+    IN(s, `#${id}-d${i}`, t + .25 + k * .05, 'pop'); });
+}
+
+/* calendar: a pad of pages ([[big, small], …]); the first is on top. TEAR(s,n,t,i) rips page i off. */
+function calendar(s, n, x, y, pages, { w = 86, h = 98, head = '' } = {}) {
+  const id = `${s.id}-${n}`;
+  const page = ([big, small], i) => `<g id="${id}-p${i}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="7" fill="${CARD}" stroke="${INK}" stroke-width="2"/><path d="M${x} ${y + 7} a7 7 0 0 1 7 -7 h${w - 14} a7 7 0 0 1 7 7 v15 h${-w}Z" fill="${RED}" stroke="${INK}" stroke-width="2"/>${head ? T(x + w / 2, y + 16, 9, head, { c: '#fff', w: 800, f: HEB, ls: 0 }) : ''}
+    ${T(x + w / 2, y + h * .7, h * .42, big, { c: INK, w: 800, f: HEB, ls: -1 })}${T(x + w / 2, y + h - 9, 9, small, { c: RED, w: 700, f: HEB, ls: 0 })}</g>`;
+  const rings = [.3, .7].map(k => `<rect x="${x + w * k - 3}" y="${y - 6}" width="6" height="13" rx="3" fill="${INK}"/>`).join('');
+  (s.cals = s.cals || {})[n] = pages.length;
+  return `<g><rect x="${x + 3}" y="${y + 4}" width="${w}" height="${h}" rx="7" fill="${LINE}"/>${pages.map((p, i) => page(p, i)).reverse().join('')}${rings}</g>`;
+}
+function TEAR(s, n, t, i) {
+  if (!s.cals?.[n]) return later(s, () => TEAR(s, n, t, i));
+  s.a(`tl.to("#${s.id}-${n}-p${i}",{rotation:-26,x:-26,y:-30,opacity:0,transformOrigin:"0% 0%",duration:.34,ease:"power2.in"},${r3(t)});`);
+  if (i + 1 < (s.cals?.[n] || 0)) BUMP(s, `${n}-p${i + 1}`, t + .2, 1.06);
+}
+
+/* scales: a balance with two pans; left / right = markup drawn around (0,0) sitting on each pan. TIP(s,n,t,deg) tilts it
+   (positive = the right pan goes down) with a wobble. */
+function scales(s, n, x, y, { arm = 104, left = '', right = '' } = {}) {
+  const id = `${s.id}-${n}`;
+  const pan = (side, inner) => `<g transform="translate(${side === 'l' ? x - arm : x + arm} ${y})"><g id="${id}-p${side}"><path d="M0 0 L-30 46 M0 0 L30 46" stroke="${INK}" stroke-width="1.6"/><path d="M-40 46 Q0 66 40 46Z" fill="${GOLD}" stroke="${INK}" stroke-width="2"/><g transform="translate(0 44)">${inner}</g></g></g>`;   // outer g places the pan, inner g (id) is what TIP moves
+  (s.scales = s.scales || {})[n] = { x, y, arm };
+  return `<g><path d="M${x} ${y} V${y + 104} M${x - 34} ${y + 108} h68" stroke="${INK}" stroke-width="5" stroke-linecap="round"/><rect x="${x - 28}" y="${y + 104}" width="56" height="10" rx="4" fill="${INK}"/>
+  <g id="${id}-beam"><rect x="${x - arm - 4}" y="${y - 4}" width="${arm * 2 + 8}" height="8" rx="4" fill="${INK}"/></g><circle cx="${x}" cy="${y}" r="9" fill="${GOLD}" stroke="${INK}" stroke-width="2"/>${pan('l', left)}${pan('r', right)}</g>`;
+}
+function TIP(s, n, t, deg, o = {}) {
+  if (!s.scales?.[n]) return later(s, () => TIP(s, n, t, deg, o)); const { d = .55 } = o;
+  const S = s.scales[n], id = `${s.id}-${n}`, dy = r3(S.arm * Math.sin(deg * Math.PI / 180)), e = '"elastic.out(1, 0.35)"';
+  s.a(`tl.to("#${id}-beam",{rotation:${deg},svgOrigin:"${S.x} ${S.y}",duration:${d},ease:${e}},${r3(t)});`);
+  s.a(`tl.to("#${id}-pl",{y:${-dy},duration:${d},ease:${e}},${r3(t)});tl.to("#${id}-pr",{y:${dy},duration:${d},ease:${e}},${r3(t)});`);
+}
+
+/* MONKPOP: the presenter grows for a beat (key moment) and settles back. MONKZOOM holds him bigger from t0 to t1. */
+const MONKPOP = (s, t, k = 1.1) => s.a(`tl.fromTo("#${s.id}-mkzoom",{scale:1,svgOrigin:"${RX + RW / 2} ${H}"},{scale:${k},svgOrigin:"${RX + RW / 2} ${H}",duration:.12,ease:"back.out(2)",yoyo:true,repeat:1,repeatDelay:.25,immediateRender:false},${r3(t)});`);
+function MONKZOOM(s, t0, t1, k = 1.12) {
+  s.a(`tl.to("#${s.id}-mkzoom",{scale:${k},svgOrigin:"${RX + RW / 2} ${H}",duration:.18,ease:"back.out(1.8)"},${r3(t0)});`);
+  s.a(`tl.to("#${s.id}-mkzoom",{scale:1,svgOrigin:"${RX + RW / 2} ${H}",duration:.18,ease:"power2.inOut"},${r3(t1)});`);
+}
+
 /* ---------- captions: narration word by word (*red* _green_ key words) ---------- */
 const CAP_S = 27, CAP_W = 344, CAP_Y = 124, STAGE_Y = 30, CLIP_Y = 138;   // v6: captions lower, stage moved down, stage clipped under captions
 function captions(s, phrases, t0 = .12, t1) {
@@ -546,7 +704,7 @@ function presenterBlock(s, poses, glow) {
   s.keys.forEach((t, i) => s.a(`tl.fromTo("${HS} .rhn",{attr:{transform:"translate(0 0) rotate(0 200 322)"}},{attr:{transform:"translate(0 4) rotate(${i % 2 ? -3 : 3} 200 322)"},duration:.1,ease:"power2.out",yoyo:true,repeat:1,immediateRender:false},${r3(t)});`));
   s.a(`tl.fromTo("${HS} .rhw",{attr:{transform:"rotate(-1.3 200 322)"}},{attr:{transform:"rotate(1.3 200 322)"},duration:.75,ease:"sine.inOut",yoyo:true,repeat:${Math.ceil(s.dur / .75)}},0);`);
   s.a(`tl.fromTo("#${s.id}-mkglow",{scale:1,transformOrigin:"50% 50%"},{scale:1.06,transformOrigin:"50% 50%",duration:.9,ease:"sine.inOut",yoyo:true,repeat:${Math.ceil(s.dur / .9)}},0);`);
-  return `${glowSvg}<g id="${s.id}-mksway"><g id="${s.id}-mkbob"><g id="${s.id}-mknod"><g id="${s.id}-mkpop"><g id="${s.id}-mkwig">${svg}</g></g></g></g></g>${fx}`;
+  return `<g id="${s.id}-mkzoom">${glowSvg}<g id="${s.id}-mksway"><g id="${s.id}-mkbob"><g id="${s.id}-mknod"><g id="${s.id}-mkpop"><g id="${s.id}-mkwig">${svg}</g></g></g></g></g>${fx}</g>`;   // mkzoom: MONKPOP / MONKZOOM (v7b)
 }
 
 /* ---------- halftone wipe overlay (between acts) ---------- */
