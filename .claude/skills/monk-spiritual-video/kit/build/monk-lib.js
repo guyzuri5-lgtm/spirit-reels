@@ -56,6 +56,7 @@ function mMouth(o, id) {
   const lip = '#a8454f', m = o.mouth || o.exp;
   const grin = (w, h, up) => { const d = `M${200 - w} 286 Q200 ${286 + h} ${200 + w} 286 Q200 ${286 + up} ${200 - w} 286Z`;
     return `<clipPath id="${id}m"><path d="${d}"/></clipPath><path d="${d}" fill="#5e1a1e"/><g clip-path="url(#${id}m)"><rect x="${200 - w}" y="282" width="${w * 2}" height="${8 + h * .12}" fill="#fff"/><path d="M${200 - w * .6} 282 v${8 + h * .12} M${200 - w * .2} 282 v${8 + h * .12} M${200 + w * .2} 282 v${8 + h * .12} M${200 + w * .6} 282 v${8 + h * .12}" stroke="#d8d2c8" stroke-width="1.2"/><ellipse cx="200" cy="${286 + h * .62}" rx="${w * .5}" ry="${h * .26}" fill="#c4555e"/></g><path d="${d}" fill="none" stroke="${lip}" stroke-width="2.2" stroke-linejoin="round"/><path d="M${200 - w - 6} 282 q4 4 6 5 M${200 + w + 6} 282 q-4 4 -6 5" stroke="${LN}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".7"/>`; };
+  if (m === 'talk') return grin(22, 17, 2);   // lip sync: a calm open mouth for the smile / smirk poses
   if (m === 'laugh') return grin(32, 36, 2);
   if (m === 'open') return grin(28, 26, 2);
   if (m === 'smile') return `<path d="M170 284 Q200 306 230 284" stroke="${lip}" stroke-width="4.6" fill="none" stroke-linecap="round"/><path d="M164 279 q4 5 8 6 M236 279 q-4 5 -8 6" stroke="${LN}" stroke-width="2.2" fill="none" stroke-linecap="round" opacity=".7"/>`;

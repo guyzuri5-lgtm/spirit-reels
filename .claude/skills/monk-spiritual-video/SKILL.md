@@ -110,6 +110,7 @@ Particle kinds: `confetti`, `heart`, `dot`, `light`, `leaf`, `petal`, `coin`, `s
 The base rules:
 - paper look and fonts
 - the presenter is fixed and always talking
+- **lip sync (2026-11-18):** when `assets/vo/narration.mp3` exists, gen.mjs drives the monk's mouth from the voice's loudness (needs ffmpeg), not from the caption words: open on sound, shut in the pauses, no blink while he speaks. Smile / smirk poses open with the `talk` mouth. Don't go back to word-timed flapping: Guy saw the mouth shut under the captions
 - **no shot holds longer than 1.5s** (`HOLD sNN` warnings)
 - lots of wiggle, something new every 0.3–0.6s
 - morphs or carries instead of cuts, halftone wipes between acts
@@ -162,7 +163,7 @@ On top of those:
      - `npx hyperframes transcribe assets/vo/take.mp3 --json > assets/vo/take.transcript.json`
      - `node build/gen.mjs`, which fits scenes and captions to the real speech
    - Fix any `vo align failed` or hold > 1.6 with a `CAMTO`. (The word matcher keeps Hebrew letters, so Hebrew transcripts align.)
-6. **Sound.** A soft ambient bed (pads, a singing-bowl hit on act changes, breath-like swells), with SFX on pops and slams kept gentle. Duck the music under the voice. Use `/media-use` + `/hyperframes-audio`, and show Guy any paid generation first.
+6. **Sound.** The music is Guy's pick, **Sitar Radiance** (Pixabay, free, no attribution). Copy `spirit-reels/assets/music-options/6-sitar-radiance.mp3` to the project's `assets/music/sitar-radiance.mp3`, and gen.mjs adds it under the voice at `MUSIC_VOL` 0.47 (≈ -22 LUFS, clearly audible, the voice on top). Don't run the media-use carve on it: its level lane buried the bed by 19 dB and Guy couldn't hear the music. For a different track, ask Guy first. He wants sitar in the "Shanti of Sitar" spirit, with a pulse (tabla). SFX on pops and slams stay gentle.
 7. **Final render + caption.** Render `renders/<slug>-v1-voice.mp4` and send the preview. After Guy approves, post it through the page's queue: `python3 scripts/enqueue.py videos/<slug>/renders/<slug>-v1-voice.mp4 --caption "..." --tags "נשימה,מדיטציה,רוחניות"` (rules in the repo's CLAUDE.md). Write a Hebrew post caption with a hook, the idea, one practice and a question, plus hashtags such as נשימה, מדיטציה, מודעות, צאקרות, רוחניות (and a few English ones like breathwork, meditation).
 
 ## 5. HyperFrames / GSAP gotchas

@@ -3,6 +3,7 @@
 // Generates compositions/*.html + index.html + STORYBOARD.md from code.
 // Source of truth for the film. Run: node build/gen.mjs
 import fs from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -644,7 +645,8 @@ function captions(s, phrases, t0 = .12, t1) {
 }
 
 /* ---------- the monk (presenter): fixed, talking, blinking, gesture changes every ~0.6s, sway, nods ---------- */
-const CLOSED = p => { const e = POSE[p].mouth || POSE[p].exp; return e === 'o' ? 'shush' : e === 'laugh' ? 'open' : 'smirk'; };
+const CLOSED = p => { const e = POSE[p].mouth || POSE[p].exp; return e === 'o' ? 'shush' : (e === 'laugh' || e === 'open') ? 'smile' : e === 'smile' ? 'smile' : 'smirk'; };
+const OPENM = p => { const e = POSE[p].mouth || POSE[p].exp; return (e === 'smile' || e === 'smirk') ? 'talk' : e; };   // every pose really opens its mouth when he speaks
 function poseSeq(s, plan) {
   /* plan = [[t, pose | [pool]], ...] → change pose on a word start every >= .55s, cycling the pool */
   const out = []; const starts = s.words.map(w => w[0]);
@@ -659,7 +661,7 @@ function presenterBlock(s, poses, glow) {
   let svg = '';
   used.forEach(p => {
     const base = POSE[p];
-    const V = { o: base, c: { ...base, mouth: CLOSED(p) }, b: { ...base, eyes: undefined, exp: 'laugh', mouth: CLOSED(p) }, w: { ...base, eyes: 'wink', mouth: CLOSED(p) } };
+    const V = { o: { ...base, mouth: OPENM(p) }, c: { ...base, mouth: CLOSED(p) }, b: { ...base, eyes: undefined, exp: 'laugh', mouth: CLOSED(p) }, w: { ...base, eyes: 'wink', mouth: CLOSED(p) } };
     ['c', 'o', 'b', 'w'].forEach(v => { svg += `<g id="${s.id}-mk-${p}-${v}" opacity="0">${PRESENTER({ ...V[v], glowc: null }, RX, RY, RW)}</g>`; });
   });
   const p0 = Array.isArray(poses[0][1]) ? poses[0][1][0] : poses[0][1];
@@ -668,16 +670,18 @@ function presenterBlock(s, poses, glow) {
   const glowSvg = `<g id="${s.id}-mkglow">${htField(RX + 212 * k, RY + 236 * k, 178 * k, gc, .42, 5.6, 2.4)}</g>`;
   const state = t => {
     let p = seq[0][1]; for (const [ts, pp] of seq) if (t >= ts) p = pp;
-    const talking = s.words.find(([a, b]) => t >= a && t < b);
-    let v = 'c'; if (talking && ((t - talking[0]) % .17) < .1) v = 'o';
+    const open = ENV ? mouthOpen((s.t0 || 0) + t * (s.f || 1)) : (() => { const tk = s.words.find(([a, b]) => t >= a && t < b); return tk && ((t - tk[0]) % .17) < .1; })();
+    let v = open ? 'o' : 'c';
+    if (open) return `${p}-${v}`;   // never blink the mouth shut while he speaks
     const bt = (t - .7) % 1.9, bi = Math.floor((t - .7) / 1.9); if (t > .7 && bt >= 0 && bt < .1) v = bi % 3 === 1 ? 'w' : 'b';
     if (bi % 3 === 1 && bt >= 0 && bt < .22 && t > .7) v = 'w';
     return `${p}-${v}`;
   };
   let prev = null;
   used.forEach(p => ['c', 'o', 'b', 'w'].forEach(v => s.a(`tl.set("#${s.id}-mk-${p}-${v}",{opacity:0},0);`)));
-  for (let f = 0; f <= Math.round(s.dur * 30); f++) {
-    const t = f / 30, st = state(t);
+  const FPS = 30, nf = Math.round(s.dur * (s.f || 1) * FPS);   // sample real frames, then convert back to scene time (times are scaled by s.f on write)
+  for (let f = 0; f <= nf; f++) {
+    const t = f / FPS / (s.f || 1), st = state(t);
     if (st !== prev) { if (prev) s.a(`tl.set("#${s.id}-mk-${prev}",{opacity:0},${r3(t)});`); s.a(`tl.set("#${s.id}-mk-${st}",{opacity:1},${r3(t)});`); prev = st; }
   }
   /* gesture pop on every pose change */
@@ -785,6 +789,19 @@ const PUNCH = (s, t, k = 1.04) => s.a(`tl.fromTo("#${s.id}-campunch",{scale:1,sv
 /* ---------- narration: one take, optionally sped up → scenes and caption words follow the real speech ---------- */
 const VO_SPEED = 1.0, VO_FILE = 'assets/vo/narration.mp3';
 const VO_TR = fs.existsSync(path.join(ROOT, 'assets/vo/take.transcript.json')) ? JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/vo/take.transcript.json'), 'utf8')).map(w => ({ w: w.text, a: w.start / VO_SPEED, b: w.end / VO_SPEED })) : null;
+/* lip sync (Guy, 2026-11-18: "the mouth is closed while there is text"): the mouth follows the real voice loudness, 60 samples/s.
+   Open = within 28 dB of the voice's loud peaks and not in a dip 16 dB under the local max (±0.1s) → flaps on syllables, ~70% open while speaking. */
+const ENV = (() => { if (!fs.existsSync(path.join(ROOT, VO_FILE))) return null;
+  const raw = execFileSync('ffmpeg', ['-v', 'error', '-i', path.join(ROOT, VO_FILE), '-ac', '1', '-ar', '16000', '-f', 's16le', '-'], { maxBuffer: 1 << 28 });
+  const x = new Int16Array(raw.buffer, raw.byteOffset, raw.length >> 1), Wn = 16000 / 60 | 0, e = [];
+  for (let i = 0; i + Wn <= x.length; i += Wn) { let q = 0; for (let j = i; j < i + Wn; j++) q += x[j] * x[j]; e.push(10 * Math.log10(q / Wn / 1073741824 + 1e-12)); }
+  const p95 = [...e].sort((a, b) => a - b)[Math.floor(e.length * .95)];
+  return e.map((v, i) => { let m = -200; for (let k = Math.max(0, i - 6); k <= Math.min(e.length - 1, i + 6); k++) m = Math.max(m, e[k]); return v > p95 - 28 && v > m - 16; });
+})();
+const MOUTH_LEAD = .03;   // open a hair before the sound, like a real mouth
+const mouthOpen = gt => { if (!ENV) return false; const i = Math.round((gt + MOUTH_LEAD) * 60); return !!ENV[i]; };
+/* background music (Guy's pick 2026-11-18: Sitar Radiance, ≈ -22 LUFS under the voice; no carve — it buried the bed) */
+const MUSIC_FILE = 'assets/music/sitar-radiance.mp3', MUSIC_VOL = .47;
 const norm = w => w.toLowerCase().replace(/[^\p{L}\p{N}']/gu, '');   // keeps Hebrew letters
 /* ---------- scenes ---------- */
 const S = [];
@@ -870,7 +887,7 @@ if (VO_TR) {
     sc.wt = VO_TR.slice(i0, i1).map(w => [(w.a - t0) / sc.f, (w.b - t0) / sc.f]); });
 }
 for (const sc of S) {
-  const s = Scene(sc.id, sc.dur, sc.opts); s.f = sc.f || 1; s.wt = sc.wt;
+  const s = Scene(sc.id, sc.dur, sc.opts); s.f = sc.f || 1; s.wt = sc.wt; s.t0 = t;
   const svg = sc.def(s).split('__ID__').join(sc.id);
   fs.writeFileSync(path.join(ROOT, `compositions/${sc.id}.html`), `<template>
   <style>#root{position:absolute;inset:0;overflow:hidden;background:${PAPER}}#root svg.art{position:absolute;inset:0;width:100%;height:100%}</style>
@@ -903,6 +920,7 @@ fs.writeFileSync(path.join(ROOT, 'index.html'), `<!doctype html>
     <div id="root" data-composition-id="main" data-start="0" data-duration="${total}" data-width="1080" data-height="1920">
 ${hosts.join('\n')}
       ${VO_TR ? `<audio id="vo" src="${VO_FILE}" data-start="0" data-duration="${total}" data-track-index="3" data-volume="1"></audio>` : ''}
+      ${fs.existsSync(path.join(ROOT, MUSIC_FILE)) ? `<audio id="music" src="${MUSIC_FILE}" data-start="0" data-duration="${total}" data-track-index="4" data-volume="${MUSIC_VOL}" data-fade-in="0.4" data-fade-out="1.5"></audio>` : ''}
       <div id="grain" class="clip" data-start="0" data-duration="${total}" data-track-index="2" style="position:absolute;inset:0;pointer-events:none;background:url(assets/grain.png);background-size:300px 300px;opacity:.55;mix-blend-mode:multiply;z-index:50"></div>
     </div>
     <script>
