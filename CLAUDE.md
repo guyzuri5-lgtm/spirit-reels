@@ -30,6 +30,21 @@ Caption up to ~2,000 characters; hashtags without the `#`.
 - The Instagram token is the `IG_ACCESS_TOKEN` Actions secret (a never-expiring system-user token). Never print or commit it.
 - Do not commit videos to `main`; the queue branch is compacted after each post so the repo stays small.
 
+## Video styles and skills
+- **riso** (`riso/`, spec in `docs/house-style.md`): the current fully automatic line. Hebrew, Gemini voice "Orus",
+  specs pushed to `riso/specs/` are produced and queued by `riso-produce.yml`.
+- **The monk** (`.claude/skills/monk-spiritual-video/`): HyperFrames explainer reels (English, ElevenLabs voice) with a
+  code-drawn laughing monk. Projects go in `videos/<slug>/`; each step waits for Guy's approval, then the final mp4 is
+  queued with `scripts/enqueue.py`. Use this skill whenever Guy asks for a monk video / "הנזיר".
+- Talk to Guy in Hebrew, masculine form.
+
+## Separation (important)
+- This page (@spiritualist_77777) must never mix with Guy's main Instagram page or with the creatora project.
+  The monk skill and engine here are a separate copy; never push to creatora's remotes or copy creatora's
+  characters/films in.
+- The style library (86 AI Style Atlas styles) lives in the Claude Project "עמוד אינסטגרם ספירטואליטי 7777"
+  (`style-library-1.md`, `style-library-2.md`); use a style from it only when Guy asks for one.
+
 ## Optional: gouache poster engine
 `engine/` renders a JSON spec into a reel in the "gouache travel poster" style (see `samples/*.json`):
 `node engine/render.js spec.json out.mp4` (`--check`, `--preview out.png`). Needs playwright + ffmpeg.
