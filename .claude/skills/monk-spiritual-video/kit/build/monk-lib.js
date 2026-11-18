@@ -1,11 +1,11 @@
-/* The monk: a Buddhist monk in Savta Rivka's v2 language (chubby, bald, saffron robe, right shoulder bare).
-   Load AFTER rivka-lib-v2.js. It reuses P, SK/SKS/SKL/LN/DK, HAND, mouth, texDefs and htGlow.
-   window.MONK(o, x, y, w) returns a nested SVG (viewBox 400×440), like window.RIVKA. */
+/* The monk: a chubby, bald, laughing Buddhist monk in the paper/ink language (saffron robe, right shoulder bare).
+   Load AFTER ink-lib.js. It reuses P, SK/SKS/SKL/LN/DK, HAND, mouth, texDefs and htGlow.
+   window.MONK(o, x, y, w) returns a nested SVG (viewBox 400×440). */
 
 const RB = '#e8892b', RBS = '#c4661a', RBD = '#9a4813', RBL = '#f6ad55', RBO = '#6e300c';   // saffron robe
 const MSH_L = [118, 358], MSH_R = [282, 358];
 
-/* hands: side-on flat palm for gassho (palms together), plus the Rivka set */
+/* hands: side-on flat palm for gassho (palms together), plus the shared hand set */
 HAND.flat = () => `<path d="M-12 0 L-12.5 -60 C-12.5 -80 12 -80 12 -62 L12 0Z" fill="${SK}"/>
  <path d="M12 -62 L12 0" stroke="${SKS}" stroke-width="3" opacity=".8"/>
  <path d="M-12.5 -60 C-12.5 -80 12 -80 12 -62" stroke="${LN}" stroke-width="2" fill="none"/>
@@ -125,7 +125,8 @@ function mDefs(id) {
 function monk(o) {
   const id = 'm' + (UID++);
   const h = mHead(o, id).replace('__BODY__', robe(o, id));
-  const inner = (h + o.arms.map(a => monkArm(...a)).join('') + (o.extra || '')).split('__ID__').join(id);
+  const armSvg = o.arms.map(a => monkArm(...a)).join('');
+  const inner = ((o.behind ? armSvg + h : h + armSvg) + (o.extra || '')).split('__ID__').join(id);   // behind: hands tucked behind the head (relax)
   const sh = o.shadow || [15, 5];
   return `<defs>${texDefs(id)}${mDefs(id)}<mask id="${id}sm" maskUnits="userSpaceOnUse" x="-200" y="-200" width="800" height="900"><g transform="translate(${sh[0]} ${sh[1]})" filter="url(#${id}wh)"><use href="#${id}ch"/></g></mask></defs>
  ${o.glowc === null ? '' : htGlow(212, 236, o.glowR || 182, o.glowc || '#e8a317', o.glowOp || .42)}
@@ -141,13 +142,30 @@ const MPOSE = {
   point: { exp: 'smirk', brows: 'skeptic', look: [-3, 0], mala: 1, arms: [[MSH_R, [344, 326], [326, 266], 'point', 4, 0, 1]] },
   laugh: { exp: 'laugh', mouth: 'laugh', brows: 'up', mala: 1, arms: [] },
   shock: { exp: 'o', brows: 'up', arms: [[MSH_L, [62, 424], [104, 334], 'open', 8, 1, 0], [MSH_R, [338, 424], [296, 334], 'open', -8, 0, 1]] },
-  phone: { exp: 'open', brows: 'skeptic', arms: [[MSH_L, [90, 414], [148, 358], 'fist', 0, 1, 0, phone(148, 318, -8)], [MSH_R, [344, 328], [326, 268], 'point', 4, 0, 1]] },
   thumb: { eyes: 'wink', exp: 'laugh', mouth: 'laugh', brows: 'up', mala: 1, arms: [[MSH_R, [344, 330], [324, 272], 'thumb', 0, 0, 1]] },
   beads: { eyes: 'calm', brows: 'calm', exp: 'smile', arms: [[MSH_L, [80, 424], [140, 372], 'beads', 10, 1, 0]] },
   worry: { exp: 'o', brows: 'worry', look: [-3, 1], mala: 1, arms: [] },
-  laptop: { exp: 'smirk', brows: 'skeptic', look: [0, 3], arms: [], extra: laptop },
+  /* v7 (2026-11-18): the reference reel's emotional poses */
+  celebrate: { exp: 'laugh', mouth: 'laugh', brows: 'up', mala: 1, arms: [[MSH_L, [34, 262], [62, 150], 'open', -10, 1, 0], [MSH_R, [366, 262], [338, 150], 'open', 10, 0, 1]] },
+  excited: { exp: 'laugh', mouth: 'open', brows: 'up', arms: [[MSH_L, [40, 230], [118, 128], 'open', 40, 1, 0], [MSH_R, [360, 230], [282, 128], 'open', -40, 0, 1]] },
+  cover: { exp: 'smile', mouth: 'smile', brows: 'worry', mala: 1, arms: [[MSH_L, [86, 430], [160, 236], 'open', 2, 1, 0], [MSH_R, [314, 430], [240, 236], 'open', -2, 0, 1]] },
+  peek: { exp: 'o', brows: 'up', look: [3, -1], mala: 1, arms: [[MSH_L, [86, 430], [160, 236], 'open', 2, 1, 0], [MSH_R, [330, 440], [290, 318], 'open', 30, 0, 1]] },
+  chin: { exp: 'smirk', brows: 'skeptic', look: [3, -3], mala: 1, arms: [[MSH_R, [336, 440], [232, 330], 'fist', -10, 0, 1]] },
+  relax: { eyes: 'calm', brows: 'calm', exp: 'smile', behind: 1, arms: [[MSH_L, [26, 226], [126, 150], 'fist', 0, 1, 0], [MSH_R, [374, 226], [274, 150], 'fist', 0, 0, 1]] },
 };
 
+/* the monk's bare arm reaching into the stage (a prop, not the presenter): it comes in from the bottom edge and
+   taps / points at something. MONKREACH(x, y, w, ang, hand) — (x,y) = fingertip target, ang = arm direction in degrees
+   (0 = pointing up, negative = coming from the bottom-left), w = arm length in px. */
+window.MONKREACH = (x, y, w, ang = -28, hand = 'point') => {
+  const id = 'r' + (UID++), a = ang * Math.PI / 180, d = [Math.sin(a), -Math.cos(a)];
+  const at = k => [200 - d[0] * k, 176 - d[1] * k];   // fingertip sits at local (200,176)
+  const wr = at(hand === 'point' ? 80 : 60), el = at(300), sh = at(560);
+  const arm = monkArm(sh, el, wr, hand, 0, 1, 0).split('__ID__').join(id);
+  const k = w / 560;   // w = visible length from fingertip to shoulder
+  return `<g transform="translate(${x} ${y}) scale(${k}) translate(-200 -176)"><defs>${texDefs(id)}<mask id="${id}sm" maskUnits="userSpaceOnUse" x="-400" y="-400" width="1200" height="1400"><g transform="translate(14 6)" filter="url(#${id}wh)"><use href="#${id}ch"/></g></mask></defs>
+ <rect x="-400" y="-400" width="1200" height="1400" fill="url(#${id}ht)" mask="url(#${id}sm)" opacity=".7"/><g id="${id}ch" filter="url(#${id}tex)">${arm}</g></g>`;
+};
 window.MONK = (o, x, y, w) => `<svg x="${x}" y="${y}" width="${w}" height="${w * 1.1}" viewBox="0 0 400 440" overflow="visible">${monk({ arms: [], ...o })}</svg>`;
 window.MPOSE = MPOSE;
 

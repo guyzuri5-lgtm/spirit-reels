@@ -1,13 +1,13 @@
 // node build.mjs -> monk-sheet.html + poses/<pose>.html (static SVG). Then screenshot with headless Chrome.
 import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const D = path.dirname(fileURLToPath(import.meta.url));
-const RLIB = path.resolve(D, '../../../videos/claude-ai-attack/build/rivka-lib-v2.js');
+const LIB = path.resolve(D, '../../kit/build');   // ink-lib.js (shared drawing parts) + monk-lib.js
 const ctx = { window: {}, console }; vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(RLIB, 'utf8'), ctx);
-vm.runInContext(fs.readFileSync(path.join(D, 'monk-lib.js'), 'utf8'), ctx);
-const { MONK, MPOSE, RIVKA } = ctx.window;
+vm.runInContext(fs.readFileSync(path.join(LIB, 'ink-lib.js'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.join(LIB, 'monk-lib.js'), 'utf8'), ctx);
+const { MONK, MPOSE, MONKFULL, FPOSE } = ctx.window;
 
-const GLOW = { calm: '#e8a317', beads: '#e8a317', explain: '#e5302a', point: '#e5302a', laugh: '#16a35f', thumb: '#16a35f', shock: '#e5302a', worry: '#e5302a', phone: '#16a35f', laptop: '#16a35f' };
+const GLOW = { calm: '#e8a317', beads: '#e8a317', explain: '#e5302a', point: '#e5302a', laugh: '#16a35f', thumb: '#16a35f', shock: '#e5302a', worry: '#e5302a' };
 const paper = (w, h, id) => `<svg class="paper" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice"><defs>
  <pattern id="${id}g" width="4" height="4" patternUnits="userSpaceOnUse"><rect x="1.5" y="1.5" width="1" height="1" fill="#000" opacity=".09"/></pattern>
  <filter id="${id}n"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" seed="9"/><feColorMatrix values="0 0 0 0 .1  0 0 0 0 .08  0 0 0 0 .06  0 0 0 .22 -.04"/></filter></defs>
@@ -27,10 +27,10 @@ const FONTS = `<link href="https://fonts.googleapis.com/css2?family=Instrument+S
 let grid = '', k = 0;
 for (const [name, o] of Object.entries(MPOSE)) grid += `<div class="card">${paper(400, 440, 'p' + k)}<span class="lab">// ${String(++k).padStart(2, '0')} · ${name}</span>${ch(MONK({ ...o, glowc: GLOW[name] }, 0, 0, 400), '-20 -10 440 460')}</div>`;
 const hero = `${paper(1000, 720, 'ph')}<span class="lab">// hero · calm</span>${ch(MONK({ ...MPOSE.calm, glowc: GLOW.calm }, 0, 0, 400), '-10 10 420 430')}`;
-const duo = `${paper(1000, 720, 'pd')}<span class="lab">// same world · <b>rivka + the monk</b></span><svg class="ch" viewBox="0 0 820 590" preserveAspectRatio="xMidYMax meet">${RIVKA({ exp: 'open', brows: 'up', arms: [], glowc: '#e5302a' }, 10, 150, 400)}${MONK({ ...MPOSE.explain, glowc: '#e8a317' }, 410, 150, 400)}</svg>`;
+const duo = `${paper(1000, 720, 'pd')}<span class="lab">// seated · meditate</span><svg class="ch" viewBox="-80 70 560 660" preserveAspectRatio="xMidYMid meet">${MONKFULL({ ...FPOSE.meditate, glowc: '#e8a317' }, -60, 0, 520)}</svg>`;
 fs.writeFileSync(path.join(D, 'monk-sheet.html'), `<!doctype html><html><head><meta charset="utf-8"><title>The monk</title>${FONTS}<style>${CSS}</style></head><body>
-<h1>The monk, <em>in Rivka's world.</em></h1>
-<div class="sub">// v2 · face after the laughing Budai ref · chubby · bald · saffron robe over the left shoulder, right shoulder bare · same textures as Rivka v2: ink outline · halftone shadow · halftone glow · grain</div>
+<h1>The monk, <em>approved design.</em></h1>
+<div class="sub">// v2 · face after the laughing Budai ref · chubby · bald · saffron robe over the left shoulder, right shoulder bare · paper/ink textures: ink outline · halftone shadow · halftone glow · grain</div>
 <div class="row"><div class="card big">${hero}</div><div class="card big">${duo}</div></div>
 <div class="grid">${grid}</div></body></html>`);
 

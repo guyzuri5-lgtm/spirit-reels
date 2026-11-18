@@ -2,8 +2,8 @@
 import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path'; import { fileURLToPath } from 'node:url';
 const D = path.dirname(fileURLToPath(import.meta.url));
 const ctx = { window: {}, console }; vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(path.resolve(D, '../../../videos/claude-ai-attack/build/rivka-lib-v2.js'), 'utf8'), ctx);
-vm.runInContext(fs.readFileSync(path.join(D, 'monk-lib.js'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.resolve(D, '../../kit/build/ink-lib.js'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.resolve(D, '../../kit/build/monk-lib.js'), 'utf8'), ctx);
 const { MONKFULL, FPOSE } = ctx.window;
 const GLOW = { stand: '#e8a317', wave: '#16a35f', pray: '#e8a317', belly: '#16a35f', sit: '#16a35f', meditate: '#e8a317' };
 const paper = id => `<svg class="paper" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid slice"><defs><pattern id="${id}g" width="4" height="4" patternUnits="userSpaceOnUse"><rect x="1.5" y="1.5" width="1" height="1" fill="#000" opacity=".09"/></pattern><filter id="${id}n"><feTurbulence type="fractalNoise" baseFrequency=".8" numOctaves="3" seed="9"/><feColorMatrix values="0 0 0 0 .1  0 0 0 0 .08  0 0 0 0 .06  0 0 0 .22 -.04"/></filter></defs><rect width="400" height="400" fill="#efece6"/><rect width="400" height="400" fill="url(#${id}g)"/><rect width="400" height="400" filter="url(#${id}n)"/></svg>`;

@@ -1,27 +1,26 @@
-// monk-spiritual-video KIT: the cyber-explainer engine with THE MONK as presenter, for spiritual topics (breath, energy, chakras, meditation), 2026-11-18. Ships a 4-scene demo. Replace the scenes block (add('s01'…) … add('s16'…)) with the new film's scenes.
-// v2 "paper" language (2026-11-17) — Rivka v2 textured + reference-reel look.
+// monk-spiritual-video KIT: the paper/ink explainer engine with THE MONK as presenter, for spiritual topics (breath, energy, chakras, meditation). Ships a 4-scene demo. Replace the scenes block (from /* DEMO scenes to /* ---------- write files) with the new film's scenes.
+// Look: paper, ink outlines, halftone, cement-tile motifs; motion rules in reference/animation-plan.md.
 // Generates compositions/*.html + index.html + STORYBOARD.md from code.
-// Source of truth for the film. Run: node build/gen.mjs   (old dark version: build/gen-v1-dark.mjs)
+// Source of truth for the film. Run: node build/gen.mjs
 import fs from 'node:fs';
 import vm from 'node:vm';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-/* ---------- Rivka v2 (textured) ---------- */
+/* ---------- the monk (ink-lib.js = shared hands, face, textures, head rig; monk-lib.js = the monk himself) ---------- */
 const ctx = { window: {}, console };
 vm.createContext(ctx);
-vm.runInContext(fs.readFileSync(path.join(ROOT, 'build/rivka-lib-v2.js'), 'utf8') + '\n;globalThis.__L={SH_L,SH_R,C1,C2,phone,mug,laptop,HK};', ctx);
-vm.runInContext(fs.readFileSync(path.join(ROOT, 'build/monk-lib.js'), 'utf8'), ctx);   // the monk reuses Rivka's drawing kit (hands, textures, head rig)
-/* the presenter: every RIVKA call in the engine now draws THE MONK (same signature, same head rig classes) */
-const RIVKA = ctx.window.MONK, MONKFULL = ctx.window.MONKFULL, MP = ctx.window.MPOSE, FPOSE = ctx.window.FPOSE;
-const { SH_L, SH_R, C1, C2, phone, mug } = ctx.__L;
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'build/ink-lib.js'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.join(ROOT, 'build/monk-lib.js'), 'utf8'), ctx);
+const PRESENTER = ctx.window.MONK, MONKFULL = ctx.window.MONKFULL, MP = ctx.window.MPOSE, FPOSE = ctx.window.FPOSE;
 
 /* ---------- palette: colour = meaning ---------- */
 const W = 400, H = 711;
 const PAPER = '#efece6', INK = '#161412', CARD = '#fbfaf7', LINE = '#d9d3c8', MUTE = '#8a8378', DARK = '#1b1917';
-const RED = '#e5302a', GREEN = '#16a35f', GOLD = '#e8a317', CY = '#22b8cc';   // red = fake/danger · green = real/safe · gold = money · cyan = glitch only
-const SANS = "'Instrument Sans'", SERIF = "'Instrument Serif'", MONO = "'JetBrains Mono'";
+const RED = '#e5302a', GREEN = '#16a35f', GOLD = '#e8a317';   // red = stress / the problem · green = calm / the answer · gold = energy, light, breath
+const HEB = "'Rubik'";   // Hebrew films (Guy, 2026-11-18): captions and Hebrew labels in Rubik, RTL
+const SANS = "'Instrument Sans','Rubik'", SERIF = "'Instrument Serif'", MONO = "'JetBrains Mono'";
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 /* ---------- type ---------- */
@@ -31,7 +30,12 @@ const HEAD = (lines, { x = 28, y = 86, s = 29, c = INK } = {}) => lines.map((ln,
 const T = (x, y, s, txt, { c = INK, w = 600, a = 'middle', f = SANS, ls = -0.3, it = 0 } = {}) =>
   `<text x="${x}" y="${y}" font-family="${f}" font-weight="${w}" font-size="${s}" fill="${c}" text-anchor="${a}" letter-spacing="${ls}"${it ? ' font-style="italic"' : ''}>${esc(txt)}</text>`;
 const MT = (x, y, s, txt, c = MUTE, a = 'start', w = 500) => T(x, y, s, txt, { c, a, f: MONO, w, ls: 0.2 }).replace('<text ', '<text data-layout-ignore="true" ');
-const HDR = (left, rl = '', rv = '') => `${MT(28, 40, 8.6, left)}${rl ? `<text x="372" y="40" font-family="${MONO}" font-size="8.6" text-anchor="end" fill="${MUTE}" letter-spacing=".6">${esc(rl)} <tspan fill="${RED}" font-weight="700">${esc(rv)}</tspan></text>` : ''}`;
+const HDR = (left, rl = '', rval = '') => `${MT(28, 40, 8.6, left)}${rl ? `<text x="372" y="40" font-family="${MONO}" font-size="8.6" text-anchor="end" fill="${MUTE}" letter-spacing=".6">${esc(rl)} <tspan fill="${RED}" font-weight="700">${esc(rval)}</tspan></text>` : ''}`;
+/* Hebrew label pill (Rubik). Use for any Hebrew on-stage label. */
+const hchip = (x, y, txt, { c = INK, bg = CARD, s = 9, a = 'middle' } = {}) => {
+  const w = txt.length * s * .62 + 20, x0 = a === 'middle' ? x - w / 2 : x;
+  return `<g><rect x="${x0}" y="${y - s - 4}" width="${w}" height="${s + 11}" rx="${(s + 11) / 2}" fill="${bg}" stroke="${c === INK ? LINE : c}" stroke-width="1.3"/>${T(x0 + w / 2, y + 1.5, s, txt, { c, w: 700, f: HEB, ls: 0 })}</g>`;
+};
 
 /* ---------- world: textured paper ---------- */
 function defs(id) {
@@ -130,85 +134,32 @@ const tile = (x, y, s, txt, { rot = 0, dots = -1, n = 5 } = {}) => `<g transform
   ${T(0, 18, 54, txt, { c: '#fff', w: 700, ls: -2 })}${dots >= 0 ? Array.from({ length: n }, (_, i) => `<circle cx="${(i - (n - 1) / 2) * 9}" cy="31" r="3" fill="${i === dots ? RED : 'none'}" stroke="${i === dots ? RED : '#8d867b'}" stroke-width="1.2"/>`).join('') : ''}</g>`;
 const pop = (x, y, r = 26, c = INK) => [0, 1, 2, 3, 4, 5, 6, 7].map(i => { const a = i * Math.PI / 4 + .2; return `<line x1="${(x + Math.cos(a) * r).toFixed(1)}" y1="${(y + Math.sin(a) * r).toFixed(1)}" x2="${(x + Math.cos(a) * (r + 8)).toFixed(1)}" y2="${(y + Math.sin(a) * (r + 8)).toFixed(1)}" stroke="${c}" stroke-width="2.2" stroke-linecap="round"/>`; }).join('');
 
-/* the AI assistant (generic, no real logo) — ink-outlined sticker look */
-function bot(x, y, s, o = {}) {
-  const mode = o.mode || 'neutral';
-  const eye = mode === 'bad' ? RED : mode === 'good' ? GREEN : '#5ee0ee';
-  const face = (fill, ink, ol) => `
-    <line x1="0" y1="-40" x2="0" y2="-56" stroke="${fill || INK}" stroke-width="3.4"/>
-    <path d="M0 -71 L3.6 -61 L13 -58 L3.6 -55 L0 -45 L-3.6 -55 L-13 -58 L-3.6 -61Z" fill="${fill || (mode === 'bad' ? RED : GOLD)}" ${ol ? `stroke="${INK}" stroke-width="2" stroke-linejoin="round"` : ''}/>
-    <rect x="-58" y="-13" width="12" height="28" rx="6" fill="${fill || '#d9d3c8'}" ${ol ? `stroke="${INK}" stroke-width="2.4"` : ''}/><rect x="46" y="-13" width="12" height="28" rx="6" fill="${fill || '#d9d3c8'}" ${ol ? `stroke="${INK}" stroke-width="2.4"` : ''}/>
-    <rect x="-46" y="-40" width="92" height="80" rx="24" fill="${fill || CARD}" ${ol ? `stroke="${INK}" stroke-width="3"` : ''}/>
-    ${ol ? `<path d="M-38 -26 C-34 -34 -24 -36 -14 -36" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M40 10 C40 24 34 32 22 34" stroke="#d9d3c8" stroke-width="5" fill="none" stroke-linecap="round"/>` : ''}
-    <rect x="-35" y="-29" width="70" height="54" rx="15" fill="${ink || DARK}"/>
-    ${ol ? `<rect x="-35" y="-29" width="70" height="54" rx="15" fill="url(#__ID__-ht)" opacity=".18"/>` : ''}
-    <ellipse cx="-13" cy="-4" rx="6.5" ry="${o.squint ? 2.4 : 8.5}" fill="${fill || eye}"/><ellipse cx="13" cy="-4" rx="6.5" ry="${o.squint ? 2.4 : 8.5}" fill="${fill || eye}"/>
-    ${ol && !o.squint ? `<circle cx="-15" cy="-8" r="2" fill="#fff"/><circle cx="11" cy="-8" r="2" fill="#fff"/>` : ''}
-    <path d="M-10 13 Q0 ${mode === 'bad' ? 9 : 19} 10 13" stroke="${fill || eye}" stroke-width="3.2" fill="none" stroke-linecap="round"/>`;
-  let g = '';
-  if (mode === 'bad') g += `<g opacity=".75" transform="translate(-6 1)">${face(RED, RED)}</g><g opacity=".75" transform="translate(6 -1)">${face(CY, CY)}</g>`;
-  g += face(0, 0, 1);
-  if (o.hood) g += `<path d="M-62 42 C-68 -12 -50 -66 0 -70 C50 -66 68 -12 62 42 L46 42 C50 0 38 -48 0 -50 C-38 -48 -50 0 -46 42Z" fill="${DARK}" stroke="${INK}" stroke-width="2.4"/><path d="M-54 30 C-58 -10 -44 -54 0 -60" stroke="#4a4540" stroke-width="2" fill="none"/>`;
-  if (mode === 'bad') { let m = ''; for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) m += `<path d="M${-30 + i * 14} ${-26 + j * 13} l14 0 l-7 11Z"/>`; g += `<g fill="none" stroke="${GREEN}" stroke-width=".9" opacity=".7">${m}</g><rect x="-54" y="-8" width="108" height="5" fill="${CY}" opacity=".55"/><rect x="-48" y="6" width="80" height="3" fill="${RED}" opacity=".6"/>`; }
-  if (o.badge) g += `<g transform="translate(34 34) rotate(-8)"><rect x="-36" y="-15" width="72" height="36" rx="6" fill="${CARD}" stroke="${INK}" stroke-width="2"/><rect x="-36" y="-15" width="72" height="11" rx="5" fill="${GREEN}"/>${T(0, 3.5, 7, 'SECURITY', { c: INK, w: 700, ls: .8 })}${T(0, 14, 6.6, 'TESTER ✓', { c: GREEN, w: 700, ls: .6 })}</g>`;
-  return `<g ${o.id ? `id="${o.id}"` : ''} transform="translate(${x} ${y}) scale(${s})">${g}</g>`;
-}
-/* small company target */
-const bldg = (x, y, s, st = 'idle') => {
-  const hit = st === 'hit';
-  return `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-13" y="-30" width="26" height="30" rx="2" fill="${hit ? RED : CARD}" stroke="${INK}" stroke-width="1.8"/><rect x="-16" y="-33" width="32" height="5" rx="1.5" fill="${INK}"/>
-  ${[0, 1, 2].map(r => [0, 1].map(k => `<rect x="${-8.5 + k * 10}" y="${-24 + r * 8}" width="7" height="4.6" rx="1" fill="${hit ? '#7a1410' : INK}" opacity="${hit ? 1 : .85}"/>`).join('')).join('')}
-  ${hit ? `<g transform="translate(11 -33)"><circle r="8.5" fill="${INK}"/><path d="M-3 -1 v-3 a3 3 0 0 1 6 0" stroke="#fff" stroke-width="1.7" fill="none" transform="rotate(28)"/><rect x="-4" y="-1" width="8" height="6" rx="1" fill="#fff"/></g>` : ''}
-  ${st === 'aim' ? `<g stroke="${RED}" stroke-width="1.5" fill="none"><circle cx="0" cy="-15" r="12"/><path d="M0 -31 v6 M0 -5 v6 M-16 -15 h6 M10 -15 h6"/></g>` : ''}</g>`;
-};
-const hood = (x, y, s, eyes = RED) => `<g transform="translate(${x} ${y}) scale(${s})"><path d="M-42 62 C-42 20 -24 6 0 6 C24 6 42 20 42 62Z" fill="${DARK}" stroke="${INK}" stroke-width="2"/><path d="M-31 20 C-35 -31 -16 -47 0 -47 C16 -47 35 -31 31 20 C20 31 -20 31 -31 20Z" fill="#2c2926" stroke="${INK}" stroke-width="2"/><path d="M-24 4 C-26 -26 -12 -38 0 -40" stroke="#4a4540" stroke-width="2" fill="none"/><ellipse cx="0" cy="-6" rx="17" ry="21" fill="#0b0a09"/><circle cx="-6" cy="-6" r="2.6" fill="${eyes}"/><circle cx="6" cy="-6" r="2.6" fill="${eyes}"/></g>`;
-const person = (x, y, s, o = {}) => {
-  const sk = o.sk || '#dba67c', sks = o.sks || '#c58f67', hr = o.hr || '#3a2a20', sh = o.sh || '#2f3d55';
-  return `<g transform="translate(${x} ${y}) scale(${s})" stroke-linejoin="round"><path d="M-46 70 C-44 42 -24 32 0 32 C24 32 44 42 46 70Z" fill="${sh}" stroke="${INK}" stroke-width="2"/>${o.tie ? `<path d="M0 34 L-6 44 L0 66 L6 44Z" fill="${o.tie}"/>` : ''}
-  <rect x="-8" y="18" width="16" height="18" fill="${sks}"/><ellipse cx="0" cy="-2" rx="27" ry="31" fill="${sk}" stroke="${INK}" stroke-width="2"/>
-  ${o.female ? `<path d="M-30 6 C-34 -34 -14 -44 0 -44 C16 -44 34 -34 30 6 L26 30 C24 0 22 -14 16 -20 L-16 -20 C-22 -14 -24 0 -26 30Z" fill="${hr}" stroke="${INK}" stroke-width="2"/>` : `<path d="M-26 -8 C-28 -36 -12 -44 2 -44 C18 -44 30 -34 26 -8 C22 -20 14 -26 0 -26 C-12 -26 -22 -20 -26 -8Z" fill="${hr}" stroke="${INK}" stroke-width="2"/>`}
-  <ellipse cx="-10" cy="0" rx="5" ry="3.2" fill="#fff"/><ellipse cx="10" cy="0" rx="5" ry="3.2" fill="#fff"/><circle cx="-10" cy="-.6" r="2.3" fill="#24170f"/><circle cx="10" cy="-.6" r="2.3" fill="#24170f"/>
-  <path d="M-16 -1 Q-10 -6 -4 -1 M4 -1 Q10 -6 16 -1" stroke="#24170f" stroke-width="1.8" fill="none"/>${o.gl ? `<g fill="none" stroke="${INK}" stroke-width="1.8"><circle cx="-10" cy="0" r="8"/><circle cx="10" cy="0" r="8"/></g>` : ''}
-  <path d="M0 4 C5 4 6 10 4 12 C2 14 -2 14 -4 12 C-6 10 -5 4 0 4Z" fill="${sks}"/><path d="M-8 19 Q0 ${o.frown ? 15 : 23} 8 19" stroke="#8a3a3a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-  <ellipse cx="-15" cy="10" rx="5" ry="3" fill="#e07d6c" opacity=".35"/><ellipse cx="15" cy="10" rx="5" ry="3" fill="#e07d6c" opacity=".35"/></g>`;
-};
 const bubble = (id, x, y, w, h, txt, { bg = CARD, c = INK, tail = 'bl', s = 15, serif = 0 } = {}) => `<g transform="translate(${x} ${y})" filter="url(#${id}-sh)"><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="${h / 2}" fill="${bg}" stroke="${bg === CARD ? INK : bg}" stroke-width="1.6"/>
   <path d="${tail === 'bl' ? `M${-w / 2 + 22} ${h / 2 - 1.5} l-10 15 l22 -13.5` : `M${w / 2 - 22} ${h / 2 - 1.5} l10 15 l-22 -13.5`}" fill="${bg}" stroke="${bg === CARD ? INK : bg}" stroke-width="1.6" stroke-linejoin="round"/><rect x="${tail === 'bl' ? -w / 2 + 12 : w / 2 - 36}" y="${h / 2 - 4}" width="24" height="4" fill="${bg}"/>${serif ? T(0, s * .34, s * 1.15, txt, { c, w: 400, f: SERIF, it: 1, ls: 0 }) : T(0, s * .36, s, txt, { c, w: 600 })}</g>`;
 
-/* Rivka: bottom of frame, cropped like the reference presenter */
-const rivka = (pose, x = 112, w = 300, glow) => RIVKA({ ...POSE[pose], glowc: glow === undefined ? (['thumb', 'laugh', 'mug'].includes(pose) ? GREEN : ['shock', 'worry'].includes(pose) ? RED : GOLD) : glow }, x, H - w * 1.1 + 6, w);
-/* monk poses (monk-lib.js MPOSE) + aliases so Rivka-era scene code keeps working: crossed = palms together, skeptic; mug = beads */
+/* the monk as a one-off bust prop (the fixed presenter at the bottom is drawn by presenterBlock) */
+const monkBust = (pose, x = 112, w = 300, glow) => PRESENTER({ ...POSE[pose], glowc: glow === undefined ? (['thumb', 'laugh'].includes(pose) ? GREEN : ['shock', 'worry'].includes(pose) ? RED : GOLD) : glow }, x, H - w * 1.1 + 6, w);
+/* monk poses (monk-lib.js MPOSE) + crossed = palms together with a skeptic look */
 const POSE = { ...MP,
   crossed: { ...MP.calm, eyes: undefined, exp: 'smirk', brows: 'skeptic', look: [2, 0] },
-  mug: { ...MP.beads, eyes: undefined, exp: 'open', brows: 'up' },
 };
-const TILT = { shock: -3, crossed: 4, mug: -2, point: -4.5, phone: 3, worry: 5, thumb: -4, laugh: 3.5, explain: -2.5, calm: 2.5, beads: -2, laptop: 0 };
-const grid30 = (st, x0 = 52, y0 = 210, dx = 49, dy = 40) => Array.from({ length: 30 }, (_, i) => bldg(x0 + (i % 6) * dx, y0 + Math.floor(i / 6) * dy, .82, typeof st === 'function' ? st(i) : st)).join('');
+const TILT = { shock: -3, crossed: 4, point: -4.5, worry: 5, thumb: -4, laugh: 3.5, explain: -2.5, calm: 2.5, beads: -2, celebrate: -3, excited: 3, cover: 4, peek: -5, chin: 6, relax: -4 };
+const MONKREACH = ctx.window.MONKREACH;
 
 
 /* =====================================================================
-   MOTION ENGINE (v3, 2026-11-17) — reference-reel motion language.
-   See ANIMATION-PLAN.md. Captions = narration word by word, Rivka fixed,
+   MOTION ENGINE — reference-reel motion language.
+   See reference/animation-plan.md. Captions = narration word by word, the monk fixed,
    halftone wipes between acts, pop / drop / fly / slam entrances.
    ===================================================================== */
-const RX = 112, RW = 300, RY = H - RW * 1.1 + 6;           // Rivka is fixed for the whole film
+const RX = 112, RW = 300, RY = H - RW * 1.1 + 6;           // the monk is fixed for the whole film
 const J = o => JSON.stringify(o);
 const TO = '"50% 50%"';
 /* v5 MORPHS: outgoing main object → ink blob → next scene's main object. rect = [x,y,w,h,rx,ry] */
-const MORPHS = {
-  s03: { from: [168, 150, 196, 236, 10, 10], to: [26, 148, 348, 262, 10, 10], next: 's04', tgt: 'dos', fill: ['#fbfaf7', '#1b1917'] },
-  s06: { from: [34, 222, 332, 160, 10, 10], to: [146, 211.3, 108, 113.4, 24, 24], next: 's07', tgt: 't2', fill: ['#fbfaf7', '#161412'] },
-  s08: { from: [96, 158, 208, 208, 104, 104], to: [26, 150, 160, 130, 10, 10], next: 's09', tgt: 'c1', fill: ['#efece6', '#fbfaf7'] },
-  s09: { from: [26, 150, 348, 250, 10, 10], to: [26, 286, 348, 106, 10, 10], next: 's10', tgt: 'bar' },
-  s10: { from: [26, 286, 348, 106, 10, 10], to: [26, 150, 348, 150, 10, 10], next: 's11', tgt: 'tl' },
-  s11: { from: [76, 325, 148, 50, 25, 25], to: [200, 206, 170, 156, 10, 10], next: 's12', tgt: 'login' },
-  s13: { from: [60, 172, 280, 190, 10, 10], to: [155, 227, 90, 90, 22, 22], next: 's14', tgt: 'bot' },
-  s14: { from: [60, 154, 280, 236, 140, 118], to: [136, 347, 128, 9, 4.5, 4.5], next: 's15', tgt: 'scale', fill: ['#fbfaf7', '#efece6'] },
-};
-for (const k in MORPHS) delete MORPHS[k];   // morph table is per film: add {sNN:{from,to,next,tgt,fill}} entries for this film
+const MORPHS = {};   // per film: {sNN: {from, to, next, tgt, fill}} — rect = [x, y, w, h, rx, ry]
 const MORPH_IN = Object.fromEntries(Object.entries(MORPHS).map(([k, v]) => [v.next, v]));
 function Scene(id, dur, o = {}) {
-  const s = { id, dur, A: [], htIn: !!o.htIn, htOut: !!o.htOut, push: !!o.push && !MORPHS[id], moOut: MORPHS[id], moIn: MORPH_IN[id], shots: [], cuts: [], words: [], keys: [], fx: '' };
+  const s = { id, dur, A: [], htIn: !!o.htIn, htOut: !!o.htOut, push: !!o.push && !MORPHS[id], moOut: MORPHS[id], moIn: MORPH_IN[id], shots: [], cuts: [], words: [], keys: [], fx: '', wtok: [], capfx: '', top: '' };
   s.q = n => `#${id}-${n}`;
   s.W = (n, svg, extra = '') => `<g id="${id}-${n}"${extra}><g id="${id}-${n}-d"><g id="${id}-${n}-w">${svg}</g></g></g>`;
   s.a = c => s.A.push(c);
@@ -257,7 +208,7 @@ function WIGGLE(s, sel, { f = 5, a = 2.2, p = 1.8, t0 = 0 } = {}) {
   const st = 1 / f, n = Math.ceil((s.dur * 1.3 - t0) / st) + 1, v = k => { const h1 = hsh(sel + 'r' + k), h2 = hsh(sel + 'x' + k), h3 = hsh(sel + 'y' + k); return { rotation: r3((h1 * 2 - 1) * a), x: r3((h2 * 2 - 1) * p), y: r3((h3 * 2 - 1) * p) }; };
   for (let k = 0; k < n; k++) s.a(`tl.fromTo("${sel}",${J({ ...v(k), transformOrigin: '50% 50%' })},${J({ ...v(k + 1), transformOrigin: '50% 50%', duration: r3(st), ease: 'sine.inOut', immediateRender: k === 0 })},${r3(t0 + k * st)});`);
 }
-const WIGGLY = ['stamp', 'st0', 'st1', 'st2', 't1', 't2', 'b1', 'vs', 'qq', 'chip', 'bub', 'b0', 'slot', 'tool0', 'tool1', 'tool2', 'pub', 'news', 'big', 'arrow', 'key', 'cur', 'btn', 'tl', 'login', 'cal', 'rep', 'tape', 'dos', 'map', 'bot', 'hoodg', 'shield', 'a0', 'a1', 'a2', 'disc', 'num', 'pct', 'bar', 'c1', 'c2', 'c3', 'k1', 'k2', 'k3', 'good', 'bad', 'p0', 'p1', 'scale', 'atk', 'sc', 'moon', 'tk0', 'tk1', 'tk2', 'tk3', 'tk4', 'tk5', 'h0', 'h1', 'h2', 'botg', 'botb', 'hb', 'minibot', 'burst'];
+const WIGGLY = ['stamp', 'st0', 'st1', 'st2', 't1', 't2', 'b0', 'b1', 'chip', 'bub', 'big', 'arrow', 'key', 'tape', 'num', 'pct', 'bar', 'c1', 'c2', 'c3', 'k1', 'k2', 'k3', 'good', 'bad', 'p0', 'p1', 'scale', 'moon', 'h0', 'h1', 'h2', 'burst'];
 /* BUMP: parent card reacts when a child lands */
 function BUMP(s, n, t, k = 1.035) { s.a(`tl.fromTo("${s.q(n)}",{scale:1,transformOrigin:"50% 50%"},{scale:${k},transformOrigin:"50% 50%",duration:.07,ease:"power2.out",yoyo:true,repeat:1,immediateRender:false},${r3(t)});`); }
 /* RING: hand-drawn red ellipse that hops from target to target  hops=[[t,x,y,rx,ry,hold]] */
@@ -286,7 +237,6 @@ function SPEED(s, n, t) { s.a(`tl.fromTo(${J(s.q(n))},{opacity:1,x:0},{opacity:0
 const dust = (n, x, y, w) => `<g id="${n}" opacity="0" fill="#bdb6aa">${[-1, 1].map(k => `<ellipse cx="${x + k * w / 2}" cy="${y}" rx="9" ry="5"/><ellipse cx="${x + k * (w / 2 + 9)}" cy="${y - 3}" rx="6" ry="4"/>`).join('')}</g>`;
 function DUST(s, n, t) { s.a(`tl.fromTo(${J(s.q(n))},{opacity:.9,scale:.4,transformOrigin:"50% 100%"},{opacity:0,scale:1.5,duration:.4,ease:"power2.out"},${r3(t)});`); }
 const ring = (n, cx, cy, r, c = RED, w = 1.8) => `<circle id="${n}" cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${c}" stroke-width="${w}" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" transform="rotate(-90 ${cx} ${cy})"/>`;
-const BADGE = (x, y, s) => `<g transform="translate(${x} ${y}) scale(${s}) rotate(-8)"><rect x="-36" y="-15" width="72" height="36" rx="6" fill="${CARD}" stroke="${INK}" stroke-width="2"/><rect x="-36" y="-15" width="72" height="11" rx="5" fill="${GREEN}"/>${T(0, 3.5, 7, 'SECURITY', { c: INK, w: 700, ls: .8 })}${T(0, 14, 6.6, 'TESTER ✓', { c: GREEN, w: 700, ls: .6 })}</g>`;
 
 /* ---------- SPIRIT KIT (monk-spiritual-video, 2026-11-18): breath, energy, chakras, meditation ----------
    Same paper/ink look as every other prop: CARD fill, ink outline, one soft shadow, mono labels. */
@@ -325,7 +275,180 @@ const calmMind = (x, y) => `<path d="M${x - 32} ${y} q8 -10 16 0 t16 0 t16 0 t16
 function BREATHE(s, n, t, d, from, to) { MOVE(s, n, t, { scale: from }, { scale: to, duration: d, ease: 'sine.inOut' }); }
 /* a little seated monk as a prop (full body, no glow) */
 const miniMonk = (x, y, w, pose = 'meditate') => MONKFULL({ ...FPOSE[pose], glowc: null, shadowOp: .5 }, x, y, w);
-WIGGLY.push('head', 'lungs', 'orb', 'lotus', 'bowl', 'candle', 'ck0', 'ck1', 'ck2', 'ck3', 'ck4', 'ck5', 'ck6', 'root', 'crown', 'n4', 'n7', 'n8', 'mm');
+WIGGLY.push('head', 'lungs', 'orb', 'lotus', 'bowl', 'candle', 'ck0', 'ck1', 'ck2', 'ck3', 'ck4', 'ck5', 'ck6', 'root', 'crown', 'n4', 'n7', 'n8', 'mm', 'gong', 'note', 'jar');
+
+/* =====================================================================
+   v7 MOTION KIT (2026-11-18): from the frame analysis of Guy's "5 steps" reference reel.
+   ROLL (odometer counter) · BURST / RISE / FALL / ABSORB (particles) · LAND (drop + squash) ·
+   PRESS (button squash + ripple) · TYPE (typing with a caret) · FROMWORD (an object born from a caption word) ·
+   reach() (the monk's arm reaching into the stage). All seek-safe: fromTo / set only, values from hsh().
+   ===================================================================== */
+let PK = 0;   // particle id counter (unique per run)
+/* NOTE: HyperFrames seeks with callbacks suppressed, so nothing here may use onUpdate / onComplete:
+   every effect is baked into tl.set / fromTo at build time. */
+const EASE = { none: x => x, 'power1.out': x => 1 - (1 - x) ** 2, 'power2.out': x => 1 - (1 - x) ** 3, 'power3.out': x => 1 - (1 - x) ** 4, 'power2.in': x => x ** 3, 'power2.inOut': x => x < .5 ? 4 * x ** 3 : 1 - (-2 * x + 2) ** 3 / 2 };
+
+/* ROLL: odometer-style number. rollNum() draws it (right edge at x), ROLL() spins it from → to (digits roll up
+   with carries, leading zeros hide). Integers only; dec puts in a decimal point (183 + dec:1 → 18.3), suffix adds 'K' / '%'. */
+function rollNum(s, n, x, y, v0, { size = 20, cols = 0, c = INK, f = SANS, w = 700, sep = ',', dec = 0, suffix = '', min = 1 } = {}) {
+  const id = `${s.id}-${n}`, L = size * 1.08, cw = size * .62, sw = size * .3;
+  cols = Math.max(cols, String(Math.floor(v0)).length, dec + 1); min = Math.max(min, dec + 1);
+  (s.rolls = s.rolls || {})[n] = { cols, L, min, v: v0 };
+  let svg = '', cx = x;
+  if (suffix) { svg += T(cx, y, size, suffix, { c, w, f, a: 'end', ls: 0 }); cx -= suffix.length * size * .64 + 1; }
+  for (let k = 0; k < cols; k++) {
+    const hide = k >= min && v0 < 10 ** k ? ' opacity="0"' : '';
+    if (dec && k === dec) { svg += T(cx - sw * .5, y, size, '.', { c, w, f, ls: 0 }); cx -= sw; }
+    const gi = k - dec; if (sep && gi > 0 && gi % 3 === 0) { s.rolls[n].seps = [...(s.rolls[n].seps || []), k]; svg +=`<g id="${id}-s${k}"${hide}>${T(cx - sw * .5, y, size, sep, { c, w, f, ls: 0 })}</g>`; cx -= sw; }
+    const digits = Array.from({ length: 11 }, (_, j) => T(0, j * L, size, String(j % 10), { c, w, f, ls: 0 })).join('');
+    svg += `<g id="${id}-o${k}" transform="translate(${(cx - cw / 2).toFixed(1)} ${y})" clip-path="url(#${id}-rc)"${hide}><g id="${id}-c${k}" transform="translate(0 ${(-(Math.floor(v0 / 10 ** k) % 10) * L).toFixed(2)})">${digits}</g></g>`;
+    cx -= cw;
+  }
+  return `<defs><clipPath id="${id}-rc"><rect x="${-cw}" y="${-size * .86}" width="${cw * 2}" height="${size * 1.08}"/></clipPath></defs><g id="${id}">${svg}</g>`;
+}
+function ROLL(s, n, t, from, to, d = .8, ease = 'power2.out') {
+  if (!s.rolls?.[n]) return (s.later = s.later || []).push(() => ROLL(s, n, t, from, to, d, ease));   // drawn later in props: run after build() has the markup
+  const R = s.rolls[n], id = `${s.id}-${n}`, E = EASE[ease] || EASE['power2.out'], last = {};
+  const pos = (v, k) => { const p = 10 ** k, fl = Math.floor(v / p); return k ? (fl % 10) + Math.max(0, (v - fl * p) - (p - 1)) : v % 10; };
+  for (let f = 0, N = Math.max(2, Math.round(d * 30)); f <= N; f++) {
+    const v = from + (to - from) * E(f / N), tt = t + f * d / N;
+    for (let k = 0; k < R.cols; k++) {
+      const y = r3(-pos(f === N ? to : v, k) * R.L), op = k >= R.min && v < 10 ** k ? 0 : 1;
+      if (last['y' + k] !== y) { s.a(`tl.set("#${id}-c${k}",{attr:{transform:"translate(0 ${y})"}},${r3(tt)});`); last['y' + k] = y; }
+      if (last['o' + k] !== op) { s.a(`tl.set("#${id}-o${k}${(R.seps || []).includes(k) ? `,#${id}-s${k}` : ''}",{opacity:${op}},${r3(tt)});`); last['o' + k] = op; }
+    }
+  }
+}
+
+/* particles. kinds: confetti | heart | dot | light | leaf | petal | coin | star | spark */
+const PCOL = { confetti: [RED, INK, GOLD], heart: [RED], dot: [INK, RED], light: [GOLD], leaf: [GREEN], petal: [PEACH, '#f7d6cc'], coin: [GOLD], star: [GOLD, RED], spark: [GOLD] };
+function particle(kind, c, r) {
+  if (kind === 'confetti') return `<rect x="${-r}" y="${-r * .45}" width="${r * 2}" height="${r * .9}" fill="${c}"/>`;
+  if (kind === 'heart') return `<path d="M0 ${r * .9} C${-r * 1.6} ${-r * .1} ${-r * .9} ${-r * 1.3} 0 ${-r * .45} C${r * .9} ${-r * 1.3} ${r * 1.6} ${-r * .1} 0 ${r * .9}Z" fill="${c}" stroke="${INK}" stroke-width="1"/>`;
+  if (kind === 'light') return `<circle r="${r * 1.9}" fill="${c}" opacity=".25"/><circle r="${r * .8}" fill="${c}"/>`;
+  if (kind === 'leaf' || kind === 'petal') return `<path d="${vesica(r * 2.4, r * .8)}" transform="translate(0 ${r * 1.2})" fill="${c}" stroke="${INK}" stroke-width=".9"/>`;
+  if (kind === 'coin') return `<circle r="${r}" fill="${c}" stroke="${INK}" stroke-width="1.3"/><circle r="${r * .6}" fill="none" stroke="#a8700c" stroke-width="1"/>`;
+  if (kind === 'star' || kind === 'spark') return `<path d="M0 ${-r * 1.4} L${r * .35} ${-r * .35} L${r * 1.4} 0 L${r * .35} ${r * .35} L0 ${r * 1.4} L${-r * .35} ${r * .35} L${-r * 1.4} 0 L${-r * .35} ${-r * .35}Z" fill="${c}"/>`;
+  return `<circle r="${r}" fill="${c}"/>`;
+}
+const pAdd = (s, x, y, svg) => { const n = `${s.id}-pk${PK++}`; s.fx += `<g transform="translate(${r3(x)} ${r3(y)})"><g id="${n}" opacity="0">${svg}</g></g>`; return `#${n}`; };
+/* BURST: n particles explode out of (x,y), arc up and fall (confetti, hearts, sparks) */
+function BURST(s, t, x, y, { n = 14, kind = 'confetti', cols, r = 4, spread = 70, up = 46, fall = 60, d = .75 } = {}) {
+  cols = cols || PCOL[kind];
+  for (let i = 0; i < n; i++) {
+    const h = hsh(`${s.id}b${t}${i}`), h2 = hsh(`${s.id}c${t}${i}`), a = -Math.PI / 2 + (i / (n - 1 || 1) - .5) * 2.6 + (h - .5) * .5;
+    const dx = Math.cos(a) * spread * (.5 + h2 * .7), peak = -up * (.5 + h * .8) + Math.sin(a) * 10, rot = (h2 - .5) * 540;
+    const sel = pAdd(s, x, y, particle(kind, cols[i % cols.length], r * (.7 + h * .6)));
+    s.a(`tl.fromTo("${sel}",{opacity:1,x:0,y:0,rotation:0,scale:.4,transformOrigin:"50% 50%"},{x:${r3(dx)},rotation:${r3(rot)},scale:1,duration:${r3(d)},ease:"power2.out",immediateRender:false},${r3(t)});`);
+    s.a(`tl.fromTo("${sel}",{y:0},{y:${r3(peak)},duration:${r3(d * .38)},ease:"power2.out",immediateRender:false},${r3(t)});`);
+    s.a(`tl.to("${sel}",{y:${r3(peak + fall * (.6 + h2 * .6))},opacity:0,duration:${r3(d * .62)},ease:"power2.in"},${r3(t + d * .38)});`);
+  }
+}
+/* RISE: a stream of particles floating up and swaying from (x,y) between t0 and t1 (hearts, light motes, bubbles) */
+function RISE(s, t0, t1, x, y, { every = .16, kind = 'heart', cols, r = 5, w = 40, h = 110, d = 1.1 } = {}) {
+  cols = cols || PCOL[kind];
+  for (let t = t0, i = 0; t < t1; t += every, i++) {
+    const a = hsh(`${s.id}r${x}${i}`), b = hsh(`${s.id}q${y}${i}`), sel = pAdd(s, x + (a - .5) * w, y, particle(kind, cols[i % cols.length], r * (.7 + b * .6)));
+    s.a(`tl.fromTo("${sel}",{opacity:0,y:0,x:0,scale:.3,transformOrigin:"50% 50%"},{opacity:1,y:${r3(-h * .25)},x:${r3((b - .5) * 14)},scale:1,duration:${r3(d * .25)},ease:"back.out(2)",immediateRender:false},${r3(t)});`);
+    s.a(`tl.to("${sel}",{y:${r3(-h * (.8 + a * .4))},x:${r3((a - .5) * 30)},opacity:0,duration:${r3(d * .75)},ease:"sine.inOut"},${r3(t + d * .25)});`);
+  }
+}
+/* FALL: n particles drop from above onto a line at y and bounce (coins, petals, leaves) */
+function FALL(s, t, x, y, { n = 6, kind = 'coin', cols, r = 6, w = 70, step = .07, h = 130, d = .45 } = {}) {
+  cols = cols || PCOL[kind];
+  for (let i = 0; i < n; i++) {
+    const a = hsh(`${s.id}f${t}${i}`), sel = pAdd(s, x + (a - .5) * w, y - r, particle(kind, cols[i % cols.length], r));
+    s.a(`tl.fromTo("${sel}",{opacity:1,y:${-h},rotation:${r3((a - .5) * 90)},transformOrigin:"50% 50%"},{y:0,rotation:0,duration:${d},ease:"bounce.out",immediateRender:false},${r3(t + i * step)});`);
+  }
+}
+/* ABSORB: particles fly in from a ring of radius R and vanish into (x,y) — e.g. light gathering into a chakra.
+   Pass target: 'name' to PULSE that prop when they arrive. */
+function ABSORB(s, t, x, y, { n = 12, kind = 'light', cols, r = 4, R = 150, d = .5, step = .025, target } = {}) {
+  cols = cols || PCOL[kind];
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2 + hsh(`${s.id}a${t}${i}`) * .6, rr = R * (.8 + hsh(`${s.id}z${i}`) * .4), sel = pAdd(s, x, y, particle(kind, cols[i % cols.length], r));
+    s.a(`tl.fromTo("${sel}",{opacity:0,x:${r3(Math.cos(a) * rr)},y:${r3(Math.sin(a) * rr)},scale:1.2,transformOrigin:"50% 50%"},{opacity:1,duration:.06,immediateRender:false},${r3(t + i * step)});`);
+    s.a(`tl.to("${sel}",{x:0,y:0,scale:.2,duration:${d},ease:"power2.in"},${r3(t + i * step)});`);
+    s.a(`tl.set("${sel}",{opacity:0},${r3(t + i * step + d)});`);
+  }
+  if (target) { const ta = t + (n - 1) * step + d; PULSE(s, target, ta, 1.12); SPARK(s, ta, x, y - 26, 'burst', GOLD); }
+}
+
+/* LAND: falls from above with a tilt, squashes flat on impact, springs back (+ dust and a ground shadow).
+   dust: a dust() prop name · shadow: a landShadow() prop name that grows under it while it falls. */
+const landShadow = (n, x, y, w) => `<ellipse id="${n}" cx="${x}" cy="${y}" rx="${w / 2}" ry="${w / 9}" fill="#2a2016" opacity="0"/>`;
+function LAND(s, n, t, { h = 110, rot = -9, d = .28, dust: du, shadow } = {}) {
+  const sel = J(s.q(n));
+  s.a(`tl.fromTo(${sel},{opacity:0,y:${-h},rotation:${rot},scaleX:.9,scaleY:1.12,transformOrigin:"50% 100%"},{opacity:1,y:0,rotation:0,duration:${d},ease:"power2.in",immediateRender:true},${r3(t)});`);
+  s.a(`tl.to(${sel},{scaleX:1.2,scaleY:.8,duration:.06,ease:"power2.out"},${r3(t + d)});`);
+  s.a(`tl.to(${sel},{scaleX:1,scaleY:1,duration:.34,ease:"elastic.out(1.1, 0.45)"},${r3(t + d + .06)});`);
+  if (shadow) s.a(`tl.fromTo(${J(s.q(shadow))},{opacity:0,scale:.3,transformOrigin:"50% 50%"},{opacity:.22,scale:1,duration:${d},ease:"power2.in",immediateRender:false},${r3(t)});`);
+  if (du) DUST(s, du, t + d);
+  PUNCH(s, t + d, 1.02);
+}
+/* PRESS: a button / key is pushed — squash down, optional pressed look (swap: a prop shown from now on), red ripple at (x,y) */
+function PRESS(s, n, t, { x, y, R = 30, swap, c = RED } = {}) {
+  const sel = J(s.q(n));
+  s.a(`tl.to(${sel},{scaleY:.84,scaleX:1.05,y:3,transformOrigin:"50% 100%",duration:.06,ease:"power2.in"},${r3(t)});`);
+  s.a(`tl.to(${sel},{scaleY:1,scaleX:1,y:0,duration:.3,ease:"elastic.out(1, 0.4)"},${r3(t + .06)});`);
+  if (swap) SET(s, swap, t + .05, { opacity: 1 });
+  if (x !== undefined) { const rp = pAdd(s, x, y, `<circle r="${R}" fill="none" stroke="${c}" stroke-width="2.2"/>`);
+    s.a(`tl.fromTo("${rp}",{opacity:1,scale:.2,transformOrigin:"50% 50%"},{opacity:0,scale:1.3,duration:.4,ease:"power2.out",immediateRender:false},${r3(t + .04)});`);
+    SPARK(s, t + .05, x + R * .6, y - R * .6, 'burst', c); }
+  PUNCH(s, t + .05, 1.025);
+}
+/* keycap prop (a big pressable key / button). Use with PRESS; draw a second one with pressed:1 as the swap. */
+const keycap = (x, y, txt, { c = RED, w = 92, h = 50, pressed = 0, heb = 1 } = {}) => `<g transform="translate(${x} ${y})"><rect x="${-w / 2}" y="${-h / 2 + 6}" width="${w}" height="${h}" rx="12" fill="${pressed ? INK : '#9c1c17'}"/><rect x="${-w / 2}" y="${-h / 2 + (pressed ? 4 : 0)}" width="${w}" height="${h}" rx="12" fill="${pressed ? DARK : c}" stroke="${INK}" stroke-width="2"/><rect x="${-w / 2 + 6}" y="${-h / 2 + 5 + (pressed ? 4 : 0)}" width="${w - 12}" height="${h * .34}" rx="8" fill="#fff" opacity=".18"/>${T(0, 7 + (pressed ? 4 : 0), 17, txt, { c: '#fff', w: 800, f: heb ? HEB : SANS, ls: 0 })}</g>`;
+
+/* TYPE: text typed letter by letter with a blinking caret. typeLine() lays the text out hidden, one tspan per letter
+   (Hebrew: dir -1, x = right edge). TYPE(s, n, t, {cps, from, to, blink}) reveals letters from..to at cps letters/s
+   (call it again to continue typing later); the caret follows and then blinks for `blink` s. */
+function typeLine(s, n, x, y, text, { size = 15, c = INK, f = HEB, w = 700, dir = -1, caret = RED } = {}) {
+  const id = `${s.id}-${n}`, adv = ch => size * (ch === ' ' ? .27 : /[.,:;!'"]/.test(ch) ? .26 : /[0-9]/.test(ch) ? .6 : .57);
+  const xs = [0]; [...text].forEach(ch => xs.push(xs.at(-1) + adv(ch)));
+  (s.types = s.types || {})[n] = { len: [...text].length, cx: xs.map(v => r3(dir < 0 ? x - v - 3 : x + v + 1)) };
+  const sp = [...text].map((ch, i) => `<tspan id="${id}-k${i}" fill-opacity="0">${esc(ch)}</tspan>`).join('');
+  return `<g id="${id}"><text x="${x}" y="${y}" font-family="${f}" font-weight="${w}" font-size="${size}" fill="${c}"${dir < 0 ? ' direction="rtl" text-anchor="start"' : ''} xml:space="preserve">${sp}</text><rect id="${id}-cr" x="${s.types[n].cx[0]}" y="${r3(y - size * .82)}" width="2.2" height="${r3(size * 1.02)}" fill="${caret}" opacity="0"/></g>`;
+}
+function TYPE(s, n, t, o = {}) {
+  if (!s.types?.[n]) return (s.later = s.later || []).push(() => TYPE(s, n, t, o));
+  const { cps = 16, from = 0, blink = .8 } = o; let { to } = o;
+  const id = `${s.id}-${n}`, Y = s.types[n]; to = to ?? Y.len; const step = 1 / cps;
+  s.a(`tl.set("#${id}-cr",{opacity:1},${r3(Math.max(0, t - .2))});`);
+  for (let i = from; i < to; i++) { const ti = t + (i - from) * step;
+    s.a(`tl.set("#${id}-k${i}",{attr:{"fill-opacity":1}},${r3(ti)});tl.set("#${id}-cr",{attr:{x:${Y.cx[i + 1]}}},${r3(ti)});`); }
+  const te = t + (to - from) * step;
+  for (let b = te + .27, i = 0; b < te + blink; b += .27, i++) s.a(`tl.set("#${id}-cr",{opacity:${i % 2 ? 1 : 0}},${r3(b)});`);
+}
+
+/* FROMWORD: an object is born out of a caption word and flies down to its place on the stage.
+   word = the caption word (as written, without * _) or its index; svg = the object's markup drawn around (tx,ty)
+   in stage coordinates; it flies in a top layer (so the caption clip can't hide it), then hands over to the
+   stage prop `n` (drawn hidden, at the same spot) which pops in on landing. */
+function FROMWORD(s, n, t, word, svg, tx, ty, { d = .42 } = {}) {
+  const tok = typeof word === 'number' ? s.wtok[word] : s.wtok.find(k => k.w.replace(/[.,?!:;]/g, '') === word.replace(/[.,?!:;]/g, ''));
+  if (!tok) { console.warn(`FROMWORD ${s.id}: no caption word "${word}"`); return; }
+  const wt = s.words[s.wtok.indexOf(tok)][0];   // when the word appears
+  if (t === null || t === undefined) t = wt + .12; else if (t < wt + .05) console.warn(`FROMWORD ${s.id}: t=${t} is before the word "${tok.w}" appears (${wt.toFixed(2)}s) — pass null to follow the word`);
+  const ta = t + d, [, k, shx, shy] = shotAt(s, ta), c = 1 + .08 * ta / s.dur;
+  const X = r3(k * (200 + (tx - 200) * c) + shx), Y = r3(k * (290 + (ty - 290) * c) + shy + STAGE_Y), K = r3(k * c);
+  const f = `__fw${PK++}`;
+  s.top += `<g id="${f}" opacity="0" data-layout-allow-overlap="true"><g id="${f}s"><g transform="translate(${-tx} ${-ty})">${svg}</g></g></g>`;
+  /* start on the word (measured in the page at run time, so it matches the real font) */
+  const bx = `function(){var b=document.getElementById("${tok.id}").getBBox();return "translate("+(b.x+b.width/2).toFixed(1)+" "+(b.y+b.height/2).toFixed(1)+")"}`;
+  s.a(`tl.fromTo("#${f}",{opacity:0,attr:{transform:${bx}}},{opacity:1,duration:.05,immediateRender:false},${r3(t)});`);
+  s.a(`tl.fromTo("#${f}s",{attr:{transform:"scale(0.15) rotate(-20)"}},{attr:{transform:"scale(${K}) rotate(0)"},duration:${d},ease:"back.out(1.3)",immediateRender:false},${r3(t)});`);
+  s.a(`tl.to("#${f}",{attr:{transform:"translate(${X} ${Y})"},duration:${d},ease:"power3.inOut"},${r3(t)});`);
+  s.a(`tl.set("#${f}",{opacity:0},${r3(ta)});`);
+  IN(s, n, ta - .02, 'morph'); BUMPD(s, n, ta);
+  /* the word flashes: a red underline draws under it and fades */
+  const ul = `${f}u`;
+  s.capfx += `<line id="${ul}" x1="0" y1="0" x2="1" y2="0" stroke="${RED}" stroke-width="2.6" stroke-linecap="round" opacity="0"/>`;
+  s.a(`tl.fromTo("#${ul}",{opacity:1,attr:{x1:function(){var b=document.getElementById("${tok.id}").getBBox();return b.x+b.width},x2:function(){var b=document.getElementById("${tok.id}").getBBox();return b.x+b.width},y1:function(){var b=document.getElementById("${tok.id}").getBBox();return b.y+b.height+2},y2:function(){var b=document.getElementById("${tok.id}").getBBox();return b.y+b.height+2}}},{attr:{x2:function(){return document.getElementById("${tok.id}").getBBox().x}},duration:.16,ease:"power2.out",immediateRender:false},${r3(t - .14)});`);
+  s.a(`tl.to("#${ul}",{opacity:0,duration:.2},${r3(t + .3)});`);
+}
+/* the monk's arm reaching into the stage from the bottom edge (fingertip at x,y). Animate with IN … 'up' and MOVE. */
+const reach = (x, y, w = 330, ang = -28, hand = 'point') => MONKREACH(x, y, w, ang, hand);
 
 /* ---------- captions: narration word by word (*red* _green_ key words) ---------- */
 const CAP_S = 27, CAP_W = 344, CAP_Y = 124, STAGE_Y = 30, CLIP_Y = 138;   // v6: captions lower, stage moved down, stage clipped under captions
@@ -340,14 +463,14 @@ function captions(s, phrases, t0 = .12, t1) {
   let t = t0, svg = '', wi = 0, prevSt = 0;
   toks.forEach((ws, pi) => {
     const lines = [[]]; let lw = 0;
-    ws.forEach(k => { const cw = k.st ? CAP_S * .5 : CAP_S * .5; const w = (k.w.length + 1) * cw; if (lw + w > CAP_W && lines.at(-1).length) { lines.push([]); lw = 0; } lines.at(-1).push(k); lw += w; });
+    ws.forEach(k => { const cw = CAP_S * .56; const w = (k.w.length + 1) * cw; if (lw + w > CAP_W && lines.at(-1).length) { lines.push([]); lw = 0; } lines.at(-1).push(k); lw += w; });
     const pstart = t;
     let g = '';
     lines.forEach((ln, li) => {
-      g += `<text x="28" y="${(CAP_Y + li * CAP_S * 1.13).toFixed(1)}" font-family="${SANS}" font-weight="600" font-size="${CAP_S}" fill="${INK}" letter-spacing="-0.6">`;
+      g += `<text x="372" y="${(CAP_Y + li * CAP_S * 1.13).toFixed(1)}" direction="rtl" text-anchor="start" font-family="${HEB}" font-weight="700" font-size="${CAP_S}" fill="${INK}">`;
       ln.forEach(k => {
-        const wid = `${s.id}-w${wi++}`, dur = (k.w.length + 1) * per;
-        g += k.st ? `<tspan id="${wid}" fill-opacity="0" font-family="${SERIF}" font-style="italic" font-weight="400" font-size="${(CAP_S * 1.14).toFixed(1)}" fill="${k.st === 2 ? GREEN : RED}" letter-spacing="-0.2">${esc(k.w)} </tspan>` : `<tspan id="${wid}" fill-opacity="0">${esc(k.w)} </tspan>`;
+        const wid = `${s.id}-w${wi++}`, dur = (k.w.length + 1) * per; s.wtok.push({ w: k.w, id: wid });
+        g += k.st ? `<tspan id="${wid}" fill-opacity="0" font-weight="900" fill="${k.st === 2 ? GREEN : RED}">${esc(k.w)} </tspan>` : `<tspan id="${wid}" fill-opacity="0">${esc(k.w)} </tspan>`;
         if (WT) t = WT[wi - 1][0];
         s.a(`tl.fromTo("#${wid}",{attr:{"fill-opacity":0}},{attr:{"fill-opacity":1},duration:.1,ease:"none"},${r3(t)});`);
         s.words.push(WT ? [t, WT[wi - 1][1]] : [t, t + dur * .92]); if (k.st && !(prevSt)) s.keys.push(t); prevSt = k.st;
@@ -362,29 +485,29 @@ function captions(s, phrases, t0 = .12, t1) {
   return svg;
 }
 
-/* ---------- Rivka: fixed, talking, blinking, gesture changes every ~0.6s, sway, nods ---------- */
+/* ---------- the monk (presenter): fixed, talking, blinking, gesture changes every ~0.6s, sway, nods ---------- */
 const CLOSED = p => { const e = POSE[p].mouth || POSE[p].exp; return e === 'o' ? 'shush' : e === 'laugh' ? 'open' : 'smirk'; };
-function poseSeq(s, rv) {
-  /* rv = [[t, pose | [pool]], ...] → change pose on a word start every >= .55s, cycling the pool */
+function poseSeq(s, plan) {
+  /* plan = [[t, pose | [pool]], ...] → change pose on a word start every >= .55s, cycling the pool */
   const out = []; const starts = s.words.map(w => w[0]);
-  rv.forEach(([t0, pool], si) => { pool = Array.isArray(pool) ? pool : [pool]; const t1 = rv[si + 1] ? rv[si + 1][0] : s.dur;
+  plan.forEach(([t0, pool], si) => { pool = Array.isArray(pool) ? pool : [pool]; const t1 = plan[si + 1] ? plan[si + 1][0] : s.dur;
     out.push([t0, pool[0]]); let last = t0, k = 0;
     if (pool.length > 1) starts.forEach(ts => { if (ts > last + .55 && ts < t1 - .3) { k = (k + 1) % pool.length; out.push([ts, pool[k]]); last = ts; } }); });
   return out;
 }
-function rivkaBlock(s, rv, glow) {
-  const seq = poseSeq(s, rv);
-  const poses = [...new Set(seq.map(x => x[1]))];
+function presenterBlock(s, poses, glow) {
+  const seq = poseSeq(s, poses);
+  const used = [...new Set(seq.map(x => x[1]))];
   let svg = '';
-  poses.forEach(p => {
+  used.forEach(p => {
     const base = POSE[p];
     const V = { o: base, c: { ...base, mouth: CLOSED(p) }, b: { ...base, eyes: undefined, exp: 'laugh', mouth: CLOSED(p) }, w: { ...base, eyes: 'wink', mouth: CLOSED(p) } };
-    ['c', 'o', 'b', 'w'].forEach(v => { svg += `<g id="${s.id}-rv-${p}-${v}" opacity="0">${RIVKA({ ...V[v], glowc: null }, RX, RY, RW)}</g>`; });
+    ['c', 'o', 'b', 'w'].forEach(v => { svg += `<g id="${s.id}-mk-${p}-${v}" opacity="0">${PRESENTER({ ...V[v], glowc: null }, RX, RY, RW)}</g>`; });
   });
-  const p0 = Array.isArray(rv[0][1]) ? rv[0][1][0] : rv[0][1];
-  const gc = glow || (['thumb', 'laugh', 'mug'].includes(p0) ? GREEN : ['shock', 'worry'].includes(p0) ? RED : GOLD);
+  const p0 = Array.isArray(poses[0][1]) ? poses[0][1][0] : poses[0][1];
+  const gc = glow || (['thumb', 'laugh'].includes(p0) ? GREEN : ['shock', 'worry'].includes(p0) ? RED : GOLD);
   const k = RW / 400, hx = RX + 200 * k, hy = RY + 205 * k;
-  const glowSvg = `<g id="${s.id}-rglow">${htField(RX + 212 * k, RY + 236 * k, 178 * k, gc, .42, 5.6, 2.4)}</g>`;
+  const glowSvg = `<g id="${s.id}-mkglow">${htField(RX + 212 * k, RY + 236 * k, 178 * k, gc, .42, 5.6, 2.4)}</g>`;
   const state = t => {
     let p = seq[0][1]; for (const [ts, pp] of seq) if (t >= ts) p = pp;
     const talking = s.words.find(([a, b]) => t >= a && t < b);
@@ -394,17 +517,17 @@ function rivkaBlock(s, rv, glow) {
     return `${p}-${v}`;
   };
   let prev = null;
-  poses.forEach(p => ['c', 'o', 'b', 'w'].forEach(v => s.a(`tl.set("#${s.id}-rv-${p}-${v}",{opacity:0},0);`)));
+  used.forEach(p => ['c', 'o', 'b', 'w'].forEach(v => s.a(`tl.set("#${s.id}-mk-${p}-${v}",{opacity:0},0);`)));
   for (let f = 0; f <= Math.round(s.dur * 30); f++) {
     const t = f / 30, st = state(t);
-    if (st !== prev) { if (prev) s.a(`tl.set("#${s.id}-rv-${prev}",{opacity:0},${r3(t)});`); s.a(`tl.set("#${s.id}-rv-${st}",{opacity:1},${r3(t)});`); prev = st; }
+    if (st !== prev) { if (prev) s.a(`tl.set("#${s.id}-mk-${prev}",{opacity:0},${r3(t)});`); s.a(`tl.set("#${s.id}-mk-${st}",{opacity:1},${r3(t)});`); prev = st; }
   }
   /* gesture pop on every pose change */
-  seq.slice(1).forEach(([t], i) => s.a(`tl.fromTo("#${s.id}-rvpop",{y:10,scale:.965,transformOrigin:"50% 100%"},{y:0,scale:1,transformOrigin:"50% 100%",duration:.2,ease:"back.out(2.6)",immediateRender:false},${r3(t)});`));
+  seq.slice(1).forEach(([t], i) => s.a(`tl.fromTo("#${s.id}-mkpop",{y:10,scale:.965,transformOrigin:"50% 100%"},{y:0,scale:1,transformOrigin:"50% 100%",duration:.2,ease:"back.out(2.6)",immediateRender:false},${r3(t)});`));
   /* nod + pop lines around the head on every key word */
   let fx = '';
   s.keys.forEach((t, i) => {
-    s.a(`tl.fromTo("#${s.id}-rvnod",{rotation:0,svgOrigin:"${hx} ${RY + 440 * k}"},{rotation:${i % 2 ? 2.6 : -2.6},svgOrigin:"${hx} ${RY + 440 * k}",duration:.1,ease:"power2.out",yoyo:true,repeat:1,immediateRender:false},${r3(t)});`);
+    s.a(`tl.fromTo("#${s.id}-mknod",{rotation:0,svgOrigin:"${hx} ${RY + 440 * k}"},{rotation:${i % 2 ? 2.6 : -2.6},svgOrigin:"${hx} ${RY + 440 * k}",duration:.1,ease:"power2.out",yoyo:true,repeat:1,immediateRender:false},${r3(t)});`);
     const n = `${s.id}-hfx${i}`, side = i % 2 ? 1 : -1;
     fx += `<g id="${n}" opacity="0">${[0, 1, 2].map(j => { const a = -Math.PI / 2 + side * (.55 + j * .32); return `<line x1="${(hx + Math.cos(a) * 92).toFixed(1)}" y1="${(hy + Math.sin(a) * 96).toFixed(1)}" x2="${(hx + Math.cos(a) * 108).toFixed(1)}" y2="${(hy + Math.sin(a) * 112).toFixed(1)}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`; }).join('')}</g>`;
     s.a(`tl.fromTo("#${n}",{opacity:0,scale:.6,transformOrigin:"50% 50%"},{opacity:1,scale:1,transformOrigin:"50% 50%",duration:.1},${r3(t)});tl.to("#${n}",{opacity:0,duration:.12},${r3(t + .32)});`);
@@ -412,18 +535,18 @@ function rivkaBlock(s, rv, glow) {
   });
   /* sway (rotation around the feet) + breath bob */
   const n = Math.max(1, Math.ceil(s.dur / 1.1));
-  s.a(`tl.fromTo("#${s.id}-rvsway",{rotation:-2.2,svgOrigin:"${hx} ${H + 40}"},{rotation:2.2,svgOrigin:"${hx} ${H + 40}",duration:1.1,ease:"sine.inOut",yoyo:true,repeat:${n}},0);`);
-  s.a(`tl.fromTo("#${s.id}-rvbob",{y:0},{y:-4,duration:.55,ease:"sine.inOut",yoyo:true,repeat:${n * 2}},0);`);
+  s.a(`tl.fromTo("#${s.id}-mksway",{rotation:-2.2,svgOrigin:"${hx} ${H + 40}"},{rotation:2.2,svgOrigin:"${hx} ${H + 40}",duration:1.1,ease:"sine.inOut",yoyo:true,repeat:${n}},0);`);
+  s.a(`tl.fromTo("#${s.id}-mkbob",{y:0},{y:-4,duration:.55,ease:"sine.inOut",yoyo:true,repeat:${n * 2}},0);`);
   /* v5 head rig: tilt per pose, nod on key words, wobble out of phase with the sway */
-  const HS = `#${s.id}-rvpop`, tilt = (p, i) => (TILT[p] ?? 0) + (i % 2 ? 1.2 : -1.2);
+  const HS = `#${s.id}-mkpop`, tilt = (p, i) => (TILT[p] ?? 0) + (i % 2 ? 1.2 : -1.2);
   let pa = tilt(seq[0][1], 0);
   s.a(`tl.set("${HS} .rhd",{attr:{transform:"rotate(${pa} 200 322)"}},0);`);
   seq.slice(1).forEach(([t, p], i) => { const na = +tilt(p, i + 1).toFixed(2);
     s.a(`tl.fromTo("${HS} .rhd",{attr:{transform:"rotate(${pa} 200 322)"}},{attr:{transform:"rotate(${na} 200 322)"},duration:.26,ease:"back.out(1.8)",immediateRender:false},${r3(t)});`); pa = na; });
   s.keys.forEach((t, i) => s.a(`tl.fromTo("${HS} .rhn",{attr:{transform:"translate(0 0) rotate(0 200 322)"}},{attr:{transform:"translate(0 4) rotate(${i % 2 ? -3 : 3} 200 322)"},duration:.1,ease:"power2.out",yoyo:true,repeat:1,immediateRender:false},${r3(t)});`));
   s.a(`tl.fromTo("${HS} .rhw",{attr:{transform:"rotate(-1.3 200 322)"}},{attr:{transform:"rotate(1.3 200 322)"},duration:.75,ease:"sine.inOut",yoyo:true,repeat:${Math.ceil(s.dur / .75)}},0);`);
-  s.a(`tl.fromTo("#${s.id}-rglow",{scale:1,transformOrigin:"50% 50%"},{scale:1.06,transformOrigin:"50% 50%",duration:.9,ease:"sine.inOut",yoyo:true,repeat:${Math.ceil(s.dur / .9)}},0);`);
-  return `${glowSvg}<g id="${s.id}-rvsway"><g id="${s.id}-rvbob"><g id="${s.id}-rvnod"><g id="${s.id}-rvpop"><g id="${s.id}-rvwig">${svg}</g></g></g></g></g>${fx}`;
+  s.a(`tl.fromTo("#${s.id}-mkglow",{scale:1,transformOrigin:"50% 50%"},{scale:1.06,transformOrigin:"50% 50%",duration:.9,ease:"sine.inOut",yoyo:true,repeat:${Math.ceil(s.dur / .9)}},0);`);
+  return `${glowSvg}<g id="${s.id}-mksway"><g id="${s.id}-mkbob"><g id="${s.id}-mknod"><g id="${s.id}-mkpop"><g id="${s.id}-mkwig">${svg}</g></g></g></g></g>${fx}`;
 }
 
 /* ---------- halftone wipe overlay (between acts) ---------- */
@@ -450,7 +573,7 @@ const CAMOUT = (s, t, d = .2) => CAMTO(s, t, 200, 290, 1, d);
 const SHOT = (s, t) => s.cuts.push(t);
 const shotAt = (s, t) => { let v = [0, 1, 0, 0]; for (const sh of s.shots) if (sh[0] <= t + 1e-6) v = sh; return v; };
 /* photo print: duotone ink/paper photo in a white border with tape. Missing file → labelled placeholder slot */
-const PHOTO_DESC = { towers: 'glass office towers', den: 'dark room full of screens', servers: 'server room', city_night: 'city at night', expert_m: 'security expert (portrait)', expert_f: 'security expert (portrait)', news: 'news headlines', report: 'real Anthropic report (screenshot)' };
+const PHOTO_DESC = {};   // per film: photo name → placeholder label
 function photo(id, name, x, y, w, h, { rot = 0, tape: tp = 1, b = 7 } = {}) {
   const f = `assets/photos/${name}.jpg`, has = fs.existsSync(path.join(ROOT, f)), pid = `${id}-ph${name}`;
   const iw = w - b * 2, ih = h - b * 2;
@@ -480,41 +603,43 @@ function morphs(s) {
   return `<rect id="${id}" x="${r0.x}" y="${r0.y}" width="${r0.width}" height="${r0.height}" rx="${r0.rx}" ry="${r0.ry}" fill="${CARD}" stroke="${INK}" stroke-width="2" opacity="0" data-layout-allow-overlap="true"/>`;
 }
 /* ---------- assemble ---------- */
-function build(s, { hdr, cap, rv, glow, props, drift = [] }) {
+function build(s, { hdr, cap, poses, glow, props, drift = [] }) {
   const capSvg = captions(s, cap);
   const propSvg = props(s);
+  (s.later || []).forEach(f => f());   // v7: ROLL / TYPE called before their rollNum / typeLine was drawn
   DRIFT(s, drift);
-  const rvSvg = rivkaBlock(s, rv, glow);
+  const mkSvg = presenterBlock(s, poses, glow);
   const present = [...new Set([...drift, ...WIGGLY])].filter(n => propSvg.includes(`id="${s.id}-${n}-w"`));
-  present.forEach((n, i) => WIGGLE(s, `#${s.id}-${n}-w`, { f: 4 + (i % 3), a: /^(stamp|st\d|pub|vs|t1|t2|qq|slot|tool\d|chip|k\d)$/.test(n) ? 3.2 : 1.8, p: 1.6 }));
-  WIGGLE(s, `#${s.id}-rvwig`, { f: 3.5, a: .9, p: 1.4 });
+  present.forEach((n, i) => WIGGLE(s, `#${s.id}-${n}-w`, { f: 4 + (i % 3), a: /^(stamp|st\d|t1|t2|chip|k\d)$/.test(n) ? 3.2 : 1.8, p: 1.6 }));
+  WIGGLE(s, `#${s.id}-mkwig`, { f: 3.5, a: .9, p: 1.4 });
   s.a(`tl.fromTo("#${s.id}-cam",{scale:1,svgOrigin:"200 290"},{scale:1.08,svgOrigin:"200 290",duration:${r3(s.dur * (s.f || 1))},ease:"none"},0);`);
   const blob = morphs(s);
   const cuts = [0, ...s.cuts, s.dur].sort((a, b) => a - b), gap = Math.max(...cuts.slice(1).map((v, i) => v - cuts[i]));
   if (gap > 1.55) console.warn(`HOLD ${s.id}: ${gap.toFixed(2)}s without a shot change`);
   s.maxHold = gap;
-  return `${paper(s.id)}${s.W('hdr', hdr)}<defs><clipPath id="${s.id}-stc"><rect x="-200" y="${CLIP_Y}" width="800" height="900"/></clipPath></defs><g transform="translate(0 ${STAGE_Y})" clip-path="url(#${s.id}-stc)"><g id="${s.id}-campunch"><g id="${s.id}-shot" transform="matrix(1 0 0 1 0 0)"><g id="${s.id}-cam"><g id="${s.id}-mo">${propSvg}${s.fx}</g></g></g></g>${blob}</g>${rvSvg}${s.W('cap', capSvg)}${htWipe(s)}`;
+  return `${paper(s.id)}${s.W('hdr', hdr)}<defs><clipPath id="${s.id}-stc"><rect x="-200" y="${CLIP_Y}" width="800" height="900"/></clipPath></defs><g transform="translate(0 ${STAGE_Y})" clip-path="url(#${s.id}-stc)"><g id="${s.id}-campunch"><g id="${s.id}-shot" transform="matrix(1 0 0 1 0 0)"><g id="${s.id}-cam"><g id="${s.id}-mo">${propSvg}${s.fx}</g></g></g></g>${blob}</g>${mkSvg}${s.W('cap', capSvg + s.capfx)}${s.top}${htWipe(s)}`;
 }
 /* stamp punch: camera kick on a slam */
 const HDRI = (s, left, label, id, val) => `${MT(28, 40, 8.6, left)}<text x="372" y="40" font-family="${MONO}" font-size="8.6" text-anchor="end" fill="${MUTE}" letter-spacing=".6">${esc(label)} <tspan id="${s.id}-${id}" fill="${RED}" font-weight="700">${esc(val)}</tspan></text>`;
 function BUMPD(s, n, t, k = 1.08) { s.a(`tl.fromTo("${s.q(n)}-d",{scale:1,transformOrigin:"50% 50%"},{scale:${k},transformOrigin:"50% 50%",duration:.07,ease:"power2.out",yoyo:true,repeat:1,immediateRender:false},${r3(t)});`); }
 const PUNCH = (s, t, k = 1.04) => s.a(`tl.fromTo("#${s.id}-campunch",{scale:1,svgOrigin:"200 300"},{scale:${k},svgOrigin:"200 300",duration:.06,ease:"power2.out",yoyo:true,repeat:1,immediateRender:false},${r3(t)});`);
 
-/* ---------- narration (v7): take 2, sped up x1.12 → scenes and caption words follow the real speech ---------- */
-const VO_SPEED = 1.12, VO_FILE = 'assets/vo/narration.mp3';
+/* ---------- narration: one take, optionally sped up → scenes and caption words follow the real speech ---------- */
+const VO_SPEED = 1.0, VO_FILE = 'assets/vo/narration.mp3';
 const VO_TR = fs.existsSync(path.join(ROOT, 'assets/vo/take.transcript.json')) ? JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/vo/take.transcript.json'), 'utf8')).map(w => ({ w: w.text, a: w.start / VO_SPEED, b: w.end / VO_SPEED })) : null;
-const norm = w => w.toLowerCase().replace(/[^a-z0-9']/g, '');
+const norm = w => w.toLowerCase().replace(/[^\p{L}\p{N}']/gu, '');   // keeps Hebrew letters
 /* ---------- scenes ---------- */
 const S = [];
 const add = (id, dur, vo, scene, motion, opts, def) => S.push({ id, dur, vo, scene, motion, opts, def });
 /* DEMO scenes (spiritual) — a 12s worked example of the kit. Replace them with the new film's scenes. */
+const MESSAGE = 'Breath, energy and the seven chakras: a 12s demo of the kit.';   // one line: what the film says
 const TILE_C = [200, 268, 1.35, -4], CORNER = [52, 512, .5, 6];
 const tileFly = (s, n, t) => MOVE(s, n, t, {}, { x: CORNER[0] - TILE_C[0], y: CORNER[1] - TILE_C[1], scale: CORNER[2] / TILE_C[2], rotation: CORNER[3] - TILE_C[3], duration: .3, ease: 'power3.inOut' });
 
 add('s01', 2.6, 'Your breath is the remote control for your mind.', 'Breath controls the mind',
   'SHOT A (0–1.3): a head card drops in, a red scribble buzzing inside (busy mind). SHOT B (1.3–2.6): the camera slides to the lungs; the scribble turns into a calm green wave.',
   {}, s => build(s, {
-    hdr: HDR('// 01 · breath', 'BREATHS', '0'), cap: ['Your *breath* is the', 'remote control for your _mind._'], rv: [[0, ['explain', 'point']], [1.4, ['calm', 'beads']]],
+    hdr: HDR('// 01 · breath', 'BREATHS', '0'), cap: ['Your *breath* is the', 'remote control for your _mind._'], poses: [[0, ['explain', 'point']], [1.4, ['calm', 'beads']]],
     drift: ['head', 'lungs'],
     props: s => {
       IN(s, 'head', .08, 'drop'); IN(s, 'busy', .22, 'fade'); JITTER(s, 'busy', .3, 1.4, 2.4); CAMTO(s, .55, 130, 250, 1.4);
@@ -528,7 +653,7 @@ add('s01', 2.6, 'Your breath is the remote control for your mind.', 'Breath cont
 add('s02', 3.6, 'Breathe in for four, hold for seven, and out for eight.', 'The 4-7-8 breath',
   'SHOT A (0–1.2): the gold breath orb swells on the inhale, tile “4” pops. SHOT B (1.2–2.4): hold — the orb stays full and pulses, tile “7”. SHOT C (2.4–3.6): exhale, the orb shrinks, tile “8”; camera pulls back.',
   { push: 1 }, s => build(s, {
-    hdr: HDR('// 02 · 4-7-8', 'COUNT', '4'), cap: ['Breathe *in* for four,', 'hold for *seven,*', 'and _out_ for eight.'], rv: [[0, ['calm']], [1.2, ['point', 'calm']], [2.4, ['beads', 'laugh']]],
+    hdr: HDR('// 02 · 4-7-8', 'COUNT', '4'), cap: ['Breathe *in* for four,', 'hold for *seven,*', 'and _out_ for eight.'], poses: [[0, ['calm']], [1.2, ['point', 'calm']], [2.4, ['beads', 'laugh']]],
     drift: ['orb'],
     props: s => {
       IN(s, 'orb', .05, 'pop'); BREATHE(s, 'orb-d', .15, 1.05, .72, 1.12); IN(s, 'n4', .25, 'slam'); CAMTO(s, .3, 200, 262, 1.25);
@@ -544,7 +669,7 @@ add('s02', 3.6, 'Breathe in for four, hold for seven, and out for eight.', 'The 
 add('s03', 3.4, 'In yogic tradition, energy flows through seven chakras.', 'Seven chakras',
   'SHOT A (0–1.2): a small seated monk pops in; a spine line draws up his centre. SHOT B (1.2–2.3): close on the lower wheels — root, sacral, solar plexus pop with their names. SHOT C (2.3–3.4): tilt up to heart, throat, third eye, crown.',
   { htIn: 1 }, s => build(s, {
-    hdr: HDR('// 03 · chakras', 'WHEELS', '7'), cap: ['In yogic tradition,', '*energy* flows through', 'seven _chakras._'], rv: [[0, ['explain', 'calm']], [2.2, ['point', 'beads']]],
+    hdr: HDR('// 03 · chakras', 'WHEELS', '7'), cap: ['In yogic tradition,', '*energy* flows through', 'seven _chakras._'], poses: [[0, ['explain', 'calm']], [2.2, ['point', 'beads']]],
     drift: ['mm'],
     props: s => {
       const ys = [334, 313, 291, 269, 247, 216, 168];   // on his body: seat, belly, solar, chest, neck, brow, crown
@@ -560,7 +685,7 @@ add('s03', 3.4, 'In yogic tradition, energy flows through seven chakras.', 'Seve
 add('s04', 2.6, 'From the root, all the way to the crown.', 'Root to crown',
   'SHOT A (0–1.25): the red root wheel lands big and spins. SHOT B (1.25–2.6): it is swapped for a lotus opening with gold rays and the violet crown wheel above it; the bowl rings.',
   {}, s => build(s, {
-    hdr: HDR('// 04 · root → crown', 'LEVEL', '7'), cap: ['From the *root,*', 'all the way to the _crown._'], rv: [[0, ['point', 'explain']], [1.3, ['laugh', 'thumb']]],
+    hdr: HDR('// 04 · root → crown', 'LEVEL', '7'), cap: ['From the *root,*', 'all the way to the _crown._'], poses: [[0, ['point', 'explain']], [1.3, ['laugh', 'thumb']]],
     drift: ['root', 'lotus', 'crown', 'bowl'],
     props: s => {
       IN(s, 'root', .05, 'big'); MOVE(s, 'root-d', .1, { rotation: 0 }, { rotation: 90, duration: 1.1, ease: 'power1.inOut' }); CAMTO(s, .4, 200, 262, 1.25);
@@ -575,7 +700,9 @@ add('s04', 2.6, 'From the root, all the way to the crown.', 'Root to crown',
 /* ---------- write files ---------- */
 const FONTS = `@font-face{font-family:'Instrument Sans';src:url('assets/fonts/InstrumentSans.woff2') format('woff2');font-weight:400 700;font-display:block}
 @font-face{font-family:'Instrument Serif';src:url('assets/fonts/InstrumentSerif-Italic.woff2') format('woff2');font-style:italic;font-weight:400;font-display:block}
-@font-face{font-family:'JetBrains Mono';src:url('assets/fonts/JetBrainsMono.woff2') format('woff2');font-weight:400 800;font-display:block}`;
+@font-face{font-family:'JetBrains Mono';src:url('assets/fonts/JetBrainsMono.woff2') format('woff2');font-weight:400 800;font-display:block}
+${[700, 800, 900].map(w => `@font-face{font-family:'Rubik';src:url('assets/fonts/rubik-hebrew-${w}-normal.woff2') format('woff2');font-weight:${w};font-display:block;unicode-range:U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
+@font-face{font-family:'Rubik';src:url('assets/fonts/rubik-latin-${w}-normal.woff2') format('woff2');font-weight:${w};font-display:block;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}`).join('\n')}`;
 let t = 0; const hosts = [], sb = [];
 if (VO_TR) {
   let k = 0; const st = S.map(sc => { const first = norm(sc.vo.split(' ')[0]); while (k < VO_TR.length && norm(VO_TR[k].w) !== first) k++; if (k >= VO_TR.length) throw new Error('vo align failed at ' + sc.id); return k++; });
@@ -606,7 +733,7 @@ for (const sc of S) {
 }
 const total = +t.toFixed(2);
 fs.writeFileSync(path.join(ROOT, 'index.html'), `<!doctype html>
-<html lang="en">
+<html lang="he">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=1080, height=1920" />
@@ -630,8 +757,8 @@ ${hosts.join('\n')}
 fs.writeFileSync(path.join(ROOT, 'STORYBOARD.md'), `---
 format: 1080x1920
 duration: ${total}s
-look: v2 paper + v3 motion (ANIMATION-PLAN.md) — captions word by word, Rivka fixed and talking, halftone wipes between acts
-message: "AI-run hacking is already here: an AI did 80-90% of a real espionage campaign by itself."
+look: monk kit — paper/ink, captions word by word, the monk fixed and talking, halftone wipes between acts
+message: "${MESSAGE}"
 ---
 ` + sb.map((f, i) => `
 ## Frame ${i + 1}: ${f.scene} (${f.start.toFixed(1)}-${(f.start + f.dur).toFixed(1)}s)
