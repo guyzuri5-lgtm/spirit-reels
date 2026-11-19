@@ -4,3 +4,6 @@ engine/_page_*.html
 !samples/*.mp4
 riso/out/
 __pycache__/
+
+# shared image library for monk videos (~100MB of generated images, local only)
+assets/image-library/
