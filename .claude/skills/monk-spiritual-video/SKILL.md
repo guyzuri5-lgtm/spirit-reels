@@ -7,7 +7,7 @@ description: Make a spiritual explainer reel (1080×1920, Hebrew, ~45–60s) pre
 
 Talk to Guy in Hebrew, masculine form. That covers every message, update and the wrap-up box. On-screen text, captions and narration are in **Hebrew** (since 2026-11-18; the first Hebrew film is `videos/seven-gates`). Captions run right to left in Rubik.
 
-This skill belongs to the spirituality page @spiritualist_77777 only. It stands on its own: the presenter is the monk, the topics are spiritual, and every prop is drawn for them. The motion rules (and why they are the way they are) are in `reference/animation-plan.md`.
+This skill belongs to the spirituality page @master__spirit only. It stands on its own: the presenter is the monk, the topics are spiritual, and every prop is drawn for them. The motion rules (and why they are the way they are) are in `reference/animation-plan.md`.
 
 ## Running in the Claude app chat (claude.ai), not Claude Code
 In the regular chat there is no access to Guy's Mac or the engine repo. Work in the code sandbox instead:
@@ -220,4 +220,4 @@ These came from eight rounds of Guy's notes; a storyboard that breaks them gets 
 
 ## 6. After every change
 - Keep the film's own `STORYBOARD.md` current.
-- If a rule or a prop changes, update this skill, then commit and push it to spirit-reels only. This copy belongs to @spiritualist_77777 and must never be pushed to creatora or mixed with it.
+- If a rule or a prop changes, update this skill, then commit and push it to spirit-reels only. This copy belongs to @master__spirit and must never be pushed to creatora or mixed with it.
