@@ -23,14 +23,14 @@ In the regular chat there is no access to Guy's Mac or the engine repo. Work in 
 
 | Path | What it is |
 |---|---|
-| `kit/build/gen.mjs` | The film generator and source of truth. It writes `compositions/sNN.html`, `index.html`, `STORYBOARD.md` and `build/frames.json`. It ships a **4-scene, 12s demo** (breath → 4-7-8 → chakras → root-to-crown) as a worked example; replace those scenes. |
+| `kit/build/gen.mjs` | The film generator and source of truth. It writes `compositions/sNN.html`, `index.html`, `STORYBOARD.md` and `build/frames.json`. It ships with **no scenes** (Guy, 2026-11-19: the old drawn-icon demo got copied, so it's gone). The style reference is the approved film **`videos/body-receiver/build/gen.mjs`** — read its scenes before writing new ones. |
 | `kit/build/monk-lib.js` | **The monk.** `MONK(o,x,y,w)` is the bust presenter (in gen.mjs `PRESENTER` = `MONK`). `MONKFULL(o,x,y,w)` is the full body: `kind:'stand'` or `'sit'`. **Approved design (2026-11-18). Never redraw him.** |
 | `kit/build/ink-lib.js` | The shared drawing parts the monk is built from (hands, arms, eyes / brows / mouth, head rig, ink outline, halftone shadow and glow textures). monk-lib needs it loaded first. Don't delete it. |
 | `kit/build/vintage.py` | The vintage cut-out photos (1950s magazine, hand-tinted): reuses the shared image library first, generates only what's missing. See **Images**. |
 | `kit/build/measure-caps.mjs` | Measures every caption line in the real font (headless Chrome) → `build/capw.json`, so each line's paper box fits it. Run between two `gen.mjs` runs. |
 | `kit/build/board.mjs` | Builds the storyboard sheet from one still per shot. |
 | `kit/assets/…`, `package.json`, `hyperframes.json` | Fonts, grain, HyperFrames skeleton (pinned 0.9.59). |
-| `reference/monk/` | His approved sheets (`monk-sheet.jpg`, `monk-full.jpg`), the demo frames (`demo-scenes.jpg`), and the scripts that drew the sheets. |
+| `reference/monk/` | His approved sheets (`monk-sheet.jpg`, `monk-full.jpg`), and the scripts that drew the sheets. |
 | `reference/animation-plan.md` | The motion language: frame analysis of Guy's reference reels, the micro-motion layer, morphs, the head rig and the no-frozen-frame rule. |
 
 ## 1. The monk
@@ -58,7 +58,7 @@ In the regular chat there is no access to Guy's Mac or the engine repo. Work in 
   - crossed: palms together with a skeptic look
 - **His character:** warm, funny and calm, like the laughing Budai. Mostly calm / beads / laugh / explain; shock and worry only for the "problem" beats (stress, a racing mind, shallow breathing).
 - **Glow behind his head:** gold by default (calm, energy), green when it's good, red for shock or worry.
-- **He is fixed at the bottom** for the whole film, in the same place in every scene. For a full-body moment (an intro, a demonstration of a posture, the chakras on a body), put `miniMonk(x, y, w, 'meditate'|'sit'|'pray'|'stand'|'wave'|'belly')` **on the stage**. The demo's s03 does this.
+- **He is fixed at the bottom** for the whole film, in the same place in every scene. For a full-body moment (an intro, a demonstration of a posture, the chakras on a body), put `miniMonk(x, y, w, 'meditate'|'sit'|'pray'|'stand'|'wave'|'belly')` **on the stage** (body-receiver's s12 floats him up to the centre in meditation).
 
 ## 2. The spirit kit (in gen.mjs, after the props kit)
 
@@ -170,7 +170,8 @@ These came from eight rounds of Guy's notes; a storyboard that breaks them gets 
    - Keep his points and his order.
    - The project is `videos/<slug>/` **inside the spirit-reels repo** (never in creatora), made with `cp -R .claude/skills/monk-spiritual-video/kit/. videos/<slug>/`. Write a `BRIEF.md` with the script.
 2. **Scenes in `build/gen.mjs`.**
-   - Replace the demo scenes (from `/* DEMO scenes` to `/* ---------- write files`).
+   - Write the scenes in the `SCENES` block. **Read `videos/body-receiver/build/gen.mjs` first** and build in that style; never in the old drawn-icon style.
+   - **Every scene needs at least one generated vintage cut-out** (`cut()`); gen.mjs warns `NO CUT-OUT sNN` otherwise, and `MISSING CUT-OUT name` when an image isn't in the project yet (run `python3 build/vintage.py <names>`).
    - Keep `TILE_C`/`CORNER`/`tileFly` if you use the number-tile corner badge.
    - Morphs are per film: add entries to `MORPHS` (the template empties it).
    - `node build/gen.mjs` must end with no `HOLD`.
@@ -215,7 +216,7 @@ These came from eight rounds of Guy's notes; a storyboard that breaks them gets 
 - **Grain:** a single PNG layer.
 - **Fonts:** bundled woff2 only. Hebrew uses Rubik (`HEB`, weights 700/800/900, in `kit/assets/fonts`); `SANS` falls back to Rubik, so Hebrew in `T()` still renders. Use `hchip()` for Hebrew label pills. Captions are `direction="rtl"` anchored at x=372.
 - **Safe zone:** keep text away from the right-side button rail.
-- **CAMTO and the presenter:** `CAMTO(s,t,cx,cy,k)` puts `(cx,cy)` at (200,290), so a low `cy` pushes everything down onto the monk. Keep stage content above y≈340 after the zoom; the demo's s03 shows the fix.
+- **CAMTO and the presenter:** `CAMTO(s,t,cx,cy,k)` puts `(cx,cy)` at (200,290), so a low `cy` pushes everything down onto the monk. Keep stage content above y≈340 after the zoom.
 
 ## 6. After every change
 - Keep the film's own `STORYBOARD.md` current.

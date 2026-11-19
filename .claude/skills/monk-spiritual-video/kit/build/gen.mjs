@@ -1,4 +1,4 @@
-// monk-spiritual-video KIT: the paper/ink explainer engine with THE MONK as presenter, for spiritual topics (breath, energy, chakras, meditation). Ships a 4-scene demo. Replace the scenes block (from /* DEMO scenes to /* ---------- write files) with the new film's scenes.
+// monk-spiritual-video KIT: the paper/ink explainer engine with THE MONK as presenter, for spiritual topics (breath, energy, chakras, meditation). Ships with no scenes: write the film's scenes in the SCENES block (style reference: videos/body-receiver/build/gen.mjs).
 // Look: paper, ink outlines, halftone, cement-tile motifs; motion rules in reference/animation-plan.md.
 // Generates compositions/*.html + index.html + STORYBOARD.md from code.
 // Source of truth for the film. Run: node build/gen.mjs
@@ -780,6 +780,7 @@ const PROP_K = 1.22, PROP_O = 240;   // Guy 2026-11-19: everything bigger — al
 function build(s, { hdr, cap, poses, glow, props, drift = [] }) {
   const capSvg = captions(s, cap);
   const propSvg = props(s);
+  if (!propSvg.includes('assets/vintage/')) console.warn(`NO CUT-OUT ${s.id}: every scene needs at least one generated vintage cut-out (Guy's rule) — drawn props alone are rejected`);
   (s.later || []).forEach(f => f());   // v7: ROLL / TYPE called before their rollNum / typeLine was drawn
   DRIFT(s, drift);
   poses = poses.map(([t, p]) => [t === 'end' ? r3((s.words.at(-1)?.[1] ?? s.dur - .6) + .03) : t, p]);   // 'end' = right after the last word (a laugh)
@@ -824,6 +825,7 @@ const add = (id, dur, vo, scene, motion, opts, def) => S.push({ id, dur, vo, sce
    ===================================================================== */
 const CUTDIR = n => fs.existsSync(path.join(ROOT, `assets/vintage/cut-color/${n}.png`)) ? 'cut-color' : 'cut';
 const cut = (s, name, cx, cy, w, { rot = 0 } = {}) => { const f = s.cutf ? '' : (s.cutf = 1, `<defs><filter id="${s.id}-cutf" x="-15%" y="-15%" width="135%" height="135%" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius="2.2" result="d"/><feFlood flood-color="#fbfaf7"/><feComposite in2="d" operator="in" result="border"/><feGaussianBlur in="d" stdDeviation="1.6" result="b"/><feOffset in="b" dx="1.6" dy="2.6" result="o"/><feFlood flood-color="#2a2016" flood-opacity=".38"/><feComposite in2="o" operator="in" result="sh"/><feMerge><feMergeNode in="sh"/><feMergeNode in="border"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`);
+  if (!fs.existsSync(path.join(ROOT, `assets/vintage/${CUTDIR(name)}/${name}.png`))) console.warn(`MISSING CUT-OUT ${name}: run python3 build/vintage.py ${name}`);
   return `${f}<g transform="rotate(${rot} ${cx} ${cy})"><image href="assets/vintage/${CUTDIR(name)}/${name}.png" x="${r3(cx - w / 2)}" y="${r3(cy - w / 2)}" width="${w}" height="${w}" filter="url(#${s.id}-cutf)" data-layout-allow-overlap="true"/></g>`; };
 function BUZZ(s, n, bursts) {   // phone vibration: bursts = [[t, count], …] — short shakes with pauses, varied rhythm
   const sel = s.q(n); bursts.forEach(([t, c]) => { for (let i = 0; i < c; i++) { const k = i % 2 ? -1 : 1; s.a(`tl.set(${J(sel)},{x:${2.6 * k},rotation:${2.4 * k},transformOrigin:"50% 50%"},${r3(t + i * .04)});`); } s.a(`tl.set(${J(sel)},{x:0,rotation:0},${r3(t + c * .04)});`); });
@@ -861,71 +863,11 @@ function crowd(s, names, t0, step, { laugh = 1, until } = {}) {
 const SPINR = (s, n, t, from, to, cx, cy, d = .3, ease = 'back.out(1.6)') => s.a(`tl.fromTo("${s.q(n)}",{attr:{transform:"rotate(${from} ${cx} ${cy})"}},{attr:{transform:"rotate(${to} ${cx} ${cy})"},duration:${d},ease:"${ease}",immediateRender:false},${r3(t)});`);
 const RIPPLE = (s, n, t, cx, cy, d = .7) => s.a(`tl.fromTo("${s.q(n)}",{scale:.2,opacity:.9,svgOrigin:"${cx} ${cy}"},{scale:1.5,opacity:0,svgOrigin:"${cx} ${cy}",duration:${d},ease:"power1.out",immediateRender:false},${r3(t)});`);
 
-/* DEMO scenes (spiritual) — a 12s worked example of the kit. Replace them with the new film's scenes. */
-const MESSAGE = 'Breath, energy and the seven chakras: a 12s demo of the kit.';   // one line: what the film says
-const TILE_C = [200, 268, 1.35, -4], CORNER = [52, 512, .5, 6];
-const tileFly = (s, n, t) => MOVE(s, n, t, {}, { x: CORNER[0] - TILE_C[0], y: CORNER[1] - TILE_C[1], scale: CORNER[2] / TILE_C[2], rotation: CORNER[3] - TILE_C[3], duration: .3, ease: 'power3.inOut' });
-
-add('s01', 2.6, 'Your breath is the remote control for your mind.', 'Breath controls the mind',
-  'SHOT A (0–1.3): a head card drops in, a red scribble buzzing inside (busy mind). SHOT B (1.3–2.6): the camera slides to the lungs; the scribble turns into a calm green wave.',
-  {}, s => build(s, {
-    hdr: HDR('// 01 · breath', 'BREATHS', '0'), cap: ['Your *breath* is the', 'remote control for your _mind._'], poses: [[0, ['explain', 'point']], [1.4, ['calm', 'beads']]],
-    drift: ['head', 'lungs'],
-    props: s => {
-      IN(s, 'head', .08, 'drop'); IN(s, 'busy', .22, 'fade'); JITTER(s, 'busy', .3, 1.4, 2.4); CAMTO(s, .55, 130, 250, 1.4);
-      SPARK(s, .7, 196, 196, 'bang'); RINGS(s, [[.45, 130, 252, 64, 66, .5], [1.75, 280, 262, 70, 70, .45]]);
-      IN(s, 'lungs', 1.1, 'pop'); CAMTO(s, 1.3, 260, 262, 1.3); OUT(s, 'busy', 1.5); IN(s, 'calm', 1.56, 'fade'); BUMPD(s, 'head', 1.56);
-      SPARK(s, 1.7, 196, 214, 'plus', GREEN); SPARK(s, 2.0, 346, 214, 'dots', GREEN); CAMOUT(s, 2.1);
-      return `${s.W('head', headProfile(130, 252, 1.15))}${s.W('busy', busyMind(126, 236))}${s.W('calm', calmMind(126, 236))}${s.W('lungs', lungs(282, 262, 1.05))}`;
-    }
-  }));
-
-add('s02', 3.6, 'Breathe in for four, hold for seven, and out for eight.', 'The 4-7-8 breath',
-  'SHOT A (0–1.2): the gold breath orb swells on the inhale, tile “4” pops. SHOT B (1.2–2.4): hold — the orb stays full and pulses, tile “7”. SHOT C (2.4–3.6): exhale, the orb shrinks, tile “8”; camera pulls back.',
-  { push: 1 }, s => build(s, {
-    hdr: HDR('// 02 · 4-7-8', 'COUNT', '4'), cap: ['Breathe *in* for four,', 'hold for *seven,*', 'and _out_ for eight.'], poses: [[0, ['calm']], [1.2, ['point', 'calm']], [2.4, ['beads', 'laugh']]],
-    drift: ['orb'],
-    props: s => {
-      IN(s, 'orb', .05, 'pop'); BREATHE(s, 'orb-d', .15, 1.05, .72, 1.12); IN(s, 'n4', .25, 'slam'); CAMTO(s, .3, 200, 262, 1.25);
-      [1.4, 1.75, 2.1].forEach(t => PULSE(s, 'orb', t, 1.04)); IN(s, 'n7', 1.25, 'slam'); BUMPD(s, 'orb', 1.25); CAMTO(s, 1.2, 200, 330, 1.35);
-      BREATHE(s, 'orb-d', 2.4, 1.0, 1.12, .78); IN(s, 'n8', 2.45, 'slam'); BUMPD(s, 'orb', 2.45); CAMTO(s, 2.4, 290, 320, 1.3); CAMOUT(s, 3.1);
-      TICK(s, 'cnt', .1, s.dur, 1, 19); RINGS(s, [[.5, 96, 372, 26, 26, .35], [1.5, 200, 372, 26, 26, .35], [2.7, 304, 372, 26, 26, .35]], GOLD);
-      SPARK(s, .9, 300, 196, 'plus', GOLD); SPARK(s, 2.0, 96, 210, 'dots', GOLD); SPARK(s, 3.0, 312, 220, 'check', GREEN);
-      return `${s.W('orb', breathOrb(200, 262, 68) + `<text id="${s.id}-cnt" x="200" y="271" text-anchor="middle" font-family="${MONO}" font-weight="700" font-size="22" fill="${INK}">1</text>`)}
-        ${s.W('n4', tile(96, 372, .42, '4', { rot: -6 }))}${s.W('n7', tile(200, 372, .42, '7', { rot: 4 }))}${s.W('n8', tile(304, 372, .42, '8', { rot: -3 }))}`;
-    }
-  }));
-
-add('s03', 3.4, 'In yogic tradition, energy flows through seven chakras.', 'Seven chakras',
-  'SHOT A (0–1.2): a small seated monk pops in; a spine line draws up his centre. SHOT B (1.2–2.3): close on the lower wheels — root, sacral, solar plexus pop with their names. SHOT C (2.3–3.4): tilt up to heart, throat, third eye, crown.',
-  { htIn: 1 }, s => build(s, {
-    hdr: HDR('// 03 · chakras', 'WHEELS', '7'), cap: ['In yogic tradition,', '*energy* flows through', 'seven _chakras._'], poses: [[0, ['explain', 'calm']], [2.2, ['point', 'beads']]],
-    drift: ['mm'],
-    props: s => {
-      const ys = [334, 313, 291, 269, 247, 216, 168];   // on his body: seat, belly, solar, chest, neck, brow, crown
-      IN(s, 'mm', .05, 'up'); DRAW(s, 'spine', .3, 1.0);
-      CAMTO(s, 1.15, 200, 296, 1.3); [0, 1, 2].forEach(i => { IN(s, 'ck' + i, 1.2 + i * .28, 'pop'); IN(s, 'cl' + i, 1.26 + i * .28, 'right'); });
-      CAMTO(s, 2.25, 200, 286, 1.05); [3, 4, 5, 6].forEach(i => { IN(s, 'ck' + i, 2.3 + (i - 3) * .22, 'pop'); IN(s, 'cl' + i, 2.36 + (i - 3) * .22, 'right'); });
-      CAMOUT(s, 3.05); SPARK(s, 3.1, 236, 176, 'plus', VIOLET);
-      return `${s.W('mm', miniMonk(116, 140, 168))}<path id="${s.id}-spine" d="M200 340 V160" stroke="${GOLD}" stroke-width="3" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
-        ${ys.map((y, i) => s.W('ck' + i, chakraIcon(200, y, 11, i)) + s.W('cl' + i, chip(230, y + 3, CHAKRAS[i][0], { c: CHAKRAS[i][1], s: 7 }))).join('')}`;
-    }
-  }));
-
-add('s04', 2.6, 'From the root, all the way to the crown.', 'Root to crown',
-  'SHOT A (0–1.25): the red root wheel lands big and spins. SHOT B (1.25–2.6): it is swapped for a lotus opening with gold rays and the violet crown wheel above it; the bowl rings.',
-  {}, s => build(s, {
-    hdr: HDR('// 04 · root → crown', 'LEVEL', '7'), cap: ['From the *root,*', 'all the way to the _crown._'], poses: [[0, ['point', 'explain']], [1.3, ['laugh', 'thumb']]],
-    drift: ['root', 'lotus', 'crown', 'bowl'],
-    props: s => {
-      IN(s, 'root', .05, 'big'); MOVE(s, 'root-d', .1, { rotation: 0 }, { rotation: 90, duration: 1.1, ease: 'power1.inOut' }); CAMTO(s, .4, 200, 262, 1.25);
-      SHOT(s, 1.25); OUT(s, 'root', 1.2); IN(s, 'rays', 1.3, 'fade'); IN(s, 'lotus', 1.3, 'up'); IN(s, 'crown', 1.5, 'drop'); IN(s, 'bowl', 1.6, 'right');
-      [0, 1, 2].forEach(i => DRAW(s, 'wv' + i, 1.75 + i * .12, .35)); CAMTO(s, 1.9, 200, 236, 1.2); CAMOUT(s, 2.35);
-      SPARK(s, 1.6, 120, 190, 'plus', GOLD); SPARK(s, 1.9, 286, 186, 'dots', VIOLET);
-      return `${s.W('root', chakraIcon(200, 262, 46, 0))}${s.W('rays', rays(200, 232, 70, 96, 16, GOLD, 3))}${s.W('lotus', lotus(200, 300, 1))}${s.W('crown', chakraIcon(200, 196, 22, 6))}
-        ${s.W('bowl', bowl(324, 300, .45))}${waves(`${s.id}-wv`, 324, 280)}`;
-    }
-  }));
+/* ===== SCENES =====
+   No demo on purpose (Guy, 2026-11-19): every old drawn-icon example got copied. Write this film's scenes here.
+   The reference is the film Guy approved: videos/body-receiver/build/gen.mjs (scenes from `add('s01'` on) —
+   big generated vintage cut-outs in every scene, crowds, floods, constant motion, a laughing face after a laugh. */
+const MESSAGE = '';   // one line: what the film says
 
 /* ---------- write files ---------- */
 const FONTS = `@font-face{font-family:'Instrument Sans';src:url('assets/fonts/InstrumentSans.woff2') format('woff2');font-weight:400 700;font-display:block}
@@ -934,6 +876,7 @@ const FONTS = `@font-face{font-family:'Instrument Sans';src:url('assets/fonts/In
 ${[700, 800, 900].map(w => `@font-face{font-family:'Rubik';src:url('assets/fonts/rubik-hebrew-${w}-normal.woff2') format('woff2');font-weight:${w};font-display:block;unicode-range:U+0590-05FF,U+200C-2010,U+20AA,U+25CC,U+FB1D-FB4F}
 @font-face{font-family:'Rubik';src:url('assets/fonts/rubik-latin-${w}-normal.woff2') format('woff2');font-weight:${w};font-display:block;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}`).join('\n')}`;
 let t = 0; const hosts = [], sb = [];
+if (!S.length) throw new Error('No scenes yet. Write this film\'s scenes in build/gen.mjs (see videos/body-receiver/build/gen.mjs for the approved style).');
 if (VO_TR) {
   let k = 0; const st = S.map(sc => { const first = norm(sc.vo.split(' ')[0]); while (k < VO_TR.length && norm(VO_TR[k].w) !== first) k++; if (k >= VO_TR.length) throw new Error('vo align failed at ' + sc.id); return k++; });
   S.forEach((sc, i) => { const i0 = st[i], i1 = i + 1 < S.length ? st[i + 1] : VO_TR.length;
