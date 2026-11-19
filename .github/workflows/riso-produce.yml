@@ -2,15 +2,8 @@ name: riso-produce
 # Turns new video specs (riso/specs/*.json) into finished reels: Gemini voiceover -> riso engine -> posting queue.
 # Runs when a spec is pushed, and a few times a day to retry specs that waited for the Gemini free quota
 # (it resets at midnight Pacific = 08:00 UTC in winter).
+# DISABLED 2026-11-19: Guy asked to stop posting riso (old-style) videos. Manual run only.
 on:
-  push:
-    branches: [main]
-    paths: ['riso/specs/**']
-  schedule:
-    - cron: '20 8 * * *'
-    - cron: '0 11 * * *'
-    - cron: '0 14 * * *'
-    - cron: '30 20 * * *'
   workflow_dispatch:
 permissions:
   contents: write
