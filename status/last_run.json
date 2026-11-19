@@ -1,10 +1,21 @@
 {
-  "time": "2026-11-19T11:47:20+00:00",
+  "time": "2026-11-19T12:05:42+00:00",
   "mode": "push",
-  "ok": false,
+  "ok": true,
   "item": "20261119-114646",
-  "error": "SAFETY STOP: token belongs to @master__spirit but this pipeline only posts to @spiritualist_77777",
+  "media_id": "18647246809063865",
+  "permalink": "https://www.instagram.com/reel/Df7CsavgmOQ/",
+  "facebook": null,
+  "remove": "20261119-114646",
   "log_tail": [
-    "SAFETY STOP: token belongs to @master__spirit but this pipeline only posts to @spiritualist_77777"
+    "token ok for @master__spirit via https://graph.facebook.com",
+    "resumable upload failed, falling back to video_url: POST https://rupload.facebook.com/ig-api-upload/v25.0/18123187979101117 -> HTTP 400: {\"debug_info\":{\"retriable\":false,\"type\":\"ProcessingFailedError\",\"message\":\"Request processing failed\"}}",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: FINISHED Finished: Media has been uploaded and it is ready to be published.",
+    "POSTED 20261119-114646: https://www.instagram.com/reel/Df7CsavgmOQ/"
   ]
 }
