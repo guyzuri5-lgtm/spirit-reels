@@ -26,6 +26,8 @@ In the regular chat there is no access to Guy's Mac or the engine repo. Work in 
 | `kit/build/gen.mjs` | The film generator and source of truth. It writes `compositions/sNN.html`, `index.html`, `STORYBOARD.md` and `build/frames.json`. It ships a **4-scene, 12s demo** (breath → 4-7-8 → chakras → root-to-crown) as a worked example; replace those scenes. |
 | `kit/build/monk-lib.js` | **The monk.** `MONK(o,x,y,w)` is the bust presenter (in gen.mjs `PRESENTER` = `MONK`). `MONKFULL(o,x,y,w)` is the full body: `kind:'stand'` or `'sit'`. **Approved design (2026-11-18). Never redraw him.** |
 | `kit/build/ink-lib.js` | The shared drawing parts the monk is built from (hands, arms, eyes / brows / mouth, head rig, ink outline, halftone shadow and glow textures). monk-lib needs it loaded first. Don't delete it. |
+| `kit/build/vintage.py` | The vintage cut-out photos (1950s magazine, hand-tinted): reuses the shared image library first, generates only what's missing. See **Images**. |
+| `kit/build/measure-caps.mjs` | Measures every caption line in the real font (headless Chrome) → `build/capw.json`, so each line's paper box fits it. Run between two `gen.mjs` runs. |
 | `kit/build/board.mjs` | Builds the storyboard sheet from one still per shot. |
 | `kit/assets/…`, `package.json`, `hyperframes.json` | Fonts, grain, HyperFrames skeleton (pinned 0.9.59). |
 | `reference/monk/` | His approved sheets (`monk-sheet.jpg`, `monk-full.jpg`), the demo frames (`demo-scenes.jpg`), and the scripts that drew the sheets. |
@@ -115,7 +117,7 @@ The base rules:
 - lots of wiggle, something new every 0.3–0.6s
 - morphs or carries instead of cuts, halftone wipes between acts
 - captions are the narration word by word, at y 124
-- everything is drawn in code, with no stock and no AI images
+- the monk and the graphics are drawn in code; the only AI images are the vintage cut-out photos (see **Images** below), no stock
 - show Guy any credit spend before making it
 
 On top of those:
@@ -136,6 +138,32 @@ On top of those:
    - Real names (a teacher, a tradition, a study) must be checked; say "studies suggest" only with a real study behind it.
 5. **Tone.** Warm, light and a bit funny (the laughing monk), never preachy. End on a small practice the viewer can do now, or a question.
 
+## 3c. Guy's look & motion rules (from the body-receiver notes, 2026-11-19)
+These came from eight rounds of Guy's notes; a storyboard that breaks them gets rejected.
+
+**Images**
+- Small, centred drawn icons are "boring". Every line gets a **surprising, unconventional image that still shows the text**, and it is **big** (fills the stage). `PROP_K` (1.22) scales every scene's props; raise it per scene with `s.propK` / `s.propO`.
+- **Generated vintage cut-outs are a fixed part of every reel** (see 3b): plan one or more for each line, where they fit the text (antennas, radios, meters, real organs, laughing / puzzled people, a pointing hand, an eye, a magnifier…). Drawn props support them. Draw them with `cut(s, name, x, y, w)` (paper border + shadow; `cut-color` is preferred automatically).
+- Show Guy a contact sheet of the **new** images before putting them in the film.
+- **Don't write the word when it can be shown:** no "תדר" / "אנרגיה" pills. Show running frequency waves, lightning in a ray burst.
+- **Crowds** (`crowd(s, names, t0, step)`): centred, big, sporadic sizes; **at most two copies of a person**, each copy as far as possible from its twin (`CROWD` = 6 people × 2, `CROWD6` = 3 × 2, picked automatically). Need more people? Generate more.
+- **Floods** (question marks, "חחח"): build up gradually and scatter over the whole screen in many colours; use an R2 scatter (`x = frac(.5 + i·.7549)`, `y = frac(.5 + i·.5698)`), never a single-ratio one (it makes diagonals).
+- **Stamps:** big, readable, real stamp texture — `bigStamp(x, y, txt, { id: s.id })`.
+
+**Frame**
+- No small header text (kept hidden so counters still work), smooth paper background (no tile grid), and a **paper-coloured box behind every caption line**, sized to the line + margins. Widths are measured in the real font: `node build/gen.mjs && node build/measure-caps.mjs && node build/gen.mjs` (re-run after any caption change).
+- **Never clip art under the captions** (`CLIP_Y` is off). Art may go up there; the caption box keeps the text readable. Don't design around that area either.
+
+**Motion — nothing ever stands still**
+- `FLOAT` (each piece drifts on its own: crowds), `SHIVER` (vibrate with small rotations around the centre: phone, heart, brain, player), `BUZZ` (phone buzz in short bursts with pauses, irregular rhythm), `PULSEL` (gentle fast zoom in/out: waves, tower), `ORBIT` (small circles: magnifiers), `WAVE` (an outline grows and fades — run it on a cut-out's contour, to the screen edge), `LAUGH` (laughing bob), `SCROLL` (waves running left → right), slow small tilts on cards.
+
+**Voice**
+- Laughs are **real rolling laughs**, not chuckles — higher-pitched, **short (~1.2s)**, only in a few places (after a punchline). Generate a few laugh samples in the monk voice (`[high-pitched giggly laugh] הי הי הי…`, `eleven_v3`, ~90 credits each), let Guy pick, trim and splice them into the take between lines.
+- While he laughs, the presenter has the **laughing face**: add `['end', ['laugh']]` to the scene's `poses` ('end' = right after the last spoken word).
+- Check the pronunciation of key words. To fix one, re-voice only that phrase with niqqud (e.g. `גם הגוף הוא מַקְלֵט,` ~20 credits), check it with the transcriber, and splice it in.
+
+**Process** — talk to Guy in Hebrew only. When he asks to see something first (images, a still), show it before rendering. When he says stop, stop at once.
+
 ## 4. Order of work (each step waits for Guy)
 1. **The text.**
    - From Guy's text: turn it into short, spoken, everyday Hebrew (not written-formal), about 45–60s, one sentence per scene (1.5–5s each). Write the narration without niqqud, but spell out any word the voice might misread.
@@ -149,7 +177,20 @@ On top of those:
 3. **Storyboard.**
    - Snapshot one still per shot: `npx --yes hyperframes@0.9.59 snapshot --at <t,…> --out boards/stills-v1`, each ≥0.42s before a scene ends.
    - Build the sheet with `node build/board.mjs boards/shots-v1.json boards/stills-v1 "<title>"`, export it to jpg with headless Chrome, and send it to Guy.
-   - Check that no illustration, glow or zoom crosses up into the caption area: the stage is clipped under the captions, so anything above the line looks cut off.
+   - Art is no longer clipped under the captions (each caption line sits on its own paper box), so nothing looks cut off up there; just keep the key part of an image out from under the caption box.
+3b. **Images (rule from Guy, 2026-11-19).** Generate only images we don't already have.
+   - First see what exists: `python3 scripts/image_library.py list --style vintage-color` (from the spirit-reels root). The shared library is `assets/image-library/`, built up from every past video.
+   - In the project's `build/vintage.py`, reuse the library's **names** for the same concept (heart, brain, laugh-1, prof-2, tower…) so they're found; add new `ITEMS` / `PEOPLE` only for new concepts.
+   - `python3 build/vintage.py <names>` then, per image: reuses a library copy if one is allowed, otherwise generates a new one (GPT Image 2 low on fal, ~0.6c, already hand-tinted) and adds it to the library. It prints `reused` / `generated` for each.
+   - **The cap:** one image may appear in at most **20 of any 50 consecutive videos**. Over that, the script makes a new variant (`heart~2`, `heart~3`…) instead. Every use is logged in `assets/image-library/usage.json`.
+   - Every video counts toward the 50, even one with no images: run `python3 scripts/image_library.py register <slug>` when you start the project.
+   - Draw them in gen.mjs with `cut()` / `CUTDIR` (copy them from `videos/body-receiver/build/gen.mjs`).
+   - Tell Guy how many were reused and how many generated (and the cost) before generating.
+   - **The model (Guy's choice, 2026-11-19): GPT Image 2, `quality: "low"`, on fal** (`openai/gpt-image-2`, `image_size: "square_hd"`), then `fal-ai/birefnet/v2` for the cut-out. The fal key is `"fal"` in `~/.config/talking-head-to-ae/keys.json` (or env `FAL_KEY`). Guy stays on fal; no direct Google / OpenAI key.
+     - **Why this model:** in a side-by-side test (`videos/body-receiver/boards/model-test/compare-full.jpg`) it was the only cheap model that got hands, expressions (pointing, fist on chin, eyes up) **and** dial text (STORMY · RAIN · CHANGE · FAIR · VERY DRY) right. Z-Image Turbo and FLUX.2 klein (~0.5c) garbled the text and missed poses. FLUX.1 Schnell is too weak for this.
+     - **Retired:** nano-banana-2 on fal = 8c an image, plus 8c more for a separate tint edit (16c a coloured image). GPT Image 2 low is ~0.6c (token-billed; the exact figure is on the fal dashboard → Usage).
+   - **The look:** colour comes in the same pass, written into the prompt (`TINT` in `vintage.py`), with no edit step. The prompt must ask for a worn 1950s magazine scan: coarse halftone dots, heavy grain, thin watercolour tints that are **very faded, desaturated, pastel**, with the grey photo showing through and an aged yellow tone. A plain "hand-coloured" prompt comes out saturated and modern (round 1); the working wording is round 2, in `boards/model-test/compare-color-v2.jpg`. Object / person on a plain white background, so the cut-out stays clean.
+   - **Switches:** default output is colour → `assets/vintage/raw-color/` + `cut-color/` (gen.mjs prefers `cut-color`). `BW=1` makes black-and-white into `raw/` + `cut/` (library style `vintage-bw`). Files already in the project are skipped; `FORCE=1` regenerates and skips the library.
 4. **Silent animation.**
    - Lint: `npx --yes hyperframes@0.9.59 lint` with 0 errors.
    - Render: `npx hyperframes render -o renders/<slug>-silent-v1.mp4 --quiet`, plus a small preview for sending.
@@ -160,7 +201,8 @@ On top of those:
    - Then:
      - one take → `assets/vo/take.mp3`
      - `ffmpeg -i assets/vo/take.mp3 -filter:a atempo=<VO_SPEED> assets/vo/narration.mp3`
-     - `npx hyperframes transcribe assets/vo/take.mp3 --json > assets/vo/take.transcript.json`
+     - Hebrew transcript: `npx --yes hyperframes@0.9.59 transcribe assets/vo/take.mp3 --engine whisper --model large-v3 --language he --json` (the default `small.en` turns Hebrew into English nonsense). It writes `assets/vo/transcript.json`; save its `[{text,start,end}]` as `assets/vo/take.transcript.json`, and fix misheard words to the script's words (the first word of every scene must match, e.g. נו → תנו).
+     - Laughs or re-voiced phrases spliced in: shift the later word times by the inserted length.
      - `node build/gen.mjs`, which fits scenes and captions to the real speech
    - Fix any `vo align failed` or hold > 1.6 with a `CAMTO`. (The word matcher keeps Hebrew letters, so Hebrew transcripts align.)
 6. **Sound.** The music is Guy's pick, **Sitar Radiance** (Pixabay, free, no attribution). Copy `spirit-reels/assets/music-options/6-sitar-radiance.mp3` to the project's `assets/music/sitar-radiance.mp3`, and gen.mjs adds it under the voice at `MUSIC_VOL` 0.47 (≈ -22 LUFS, clearly audible, the voice on top). Don't run the media-use carve on it: its level lane buried the bed by 19 dB and Guy couldn't hear the music. For a different track, ask Guy first. He wants sitar in the "Shanti of Sitar" spirit, with a pulse (tabla). SFX on pops and slams stay gentle.

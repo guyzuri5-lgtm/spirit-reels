@@ -102,7 +102,7 @@ function floor(id, S = 100, ox = 0, oy = 30) {
     m += motif(id, (i + j) % 2 ? 'astroid' : 'petal4', x, y, (i + j) % 2 ? S * .17 : S * .15, { c: '#8a7f70' });
   return `<g data-layout-ignore="true"><path d="${g}" stroke="#c9c0b1" stroke-width=".9" opacity=".85"/><g opacity=".3">${m}</g></g>`;
 }
-const paper = id => `${defs(id)}<rect width="${W}" height="${H}" fill="${PAPER}"/><rect width="${W}" height="${H}" fill="url(#${id}-grid)"/>${floor(id)}<rect width="${W}" height="${H}" fill="url(#${id}-vig)"/>`;
+const paper = id => `${defs(id)}<rect width="${W}" height="${H}" fill="${PAPER}"/><rect width="${W}" height="${H}" fill="url(#${id}-grid)"/><rect width="${W}" height="${H}" fill="url(#${id}-vig)"/>`;
 
 /* halftone field: dot size falls off from the centre (deterministic) */
 function htField(cx, cy, R, col = INK, op = 1, step = 9, max = 4.2, ry = 1) {
@@ -610,7 +610,13 @@ function MONKZOOM(s, t0, t1, k = 1.12) {
 }
 
 /* ---------- captions: narration word by word (*red* _green_ key words) ---------- */
-const CAP_S = 27, CAP_W = 344, CAP_Y = 124, STAGE_Y = 30, CLIP_Y = 138;   // v6: captions lower, stage moved down, stage clipped under captions
+const CAP_S = 27, CAP_W = 344, CAP_Y = 124, STAGE_Y = 30, CLIP_Y = -400;   // Guy 2026-11-19: never cut art under the captions
+   // v6: captions lower, stage moved down, stage clipped under captions
+/* caption boxes (Guy 2026-11-19): a paper-coloured box behind every caption line, sized to the line + margins.
+   Widths are measured in the real font by build/measure-caps.mjs into build/capw.json (run gen → measure → gen). */
+const CAPW = fs.existsSync(path.join(ROOT, 'build/capw.json')) ? JSON.parse(fs.readFileSync(path.join(ROOT, 'build/capw.json'), 'utf8')) : {};
+const CAPLINES = [];
+const CAPBOX = { px: 9, py: 6, rx: 7 };
 function captions(s, phrases, t0 = .12, t1) {
   t1 = t1 ?? s.dur - .2;
   const toks = phrases.map(p => { const out = []; let style = 0; p.split(' ').forEach(w => { let st = style; if (w.startsWith('*')) { st = 1; w = w.slice(1); } else if (w.startsWith('_')) { st = 2; w = w.slice(1); }
@@ -626,6 +632,11 @@ function captions(s, phrases, t0 = .12, t1) {
     const pstart = t;
     let g = '';
     lines.forEach((ln, li) => {
+      const key = ln.map(k => (k.st ? '*' : '') + k.w).join(' '); CAPLINES.push(key);
+      const lw = CAPW[key] ?? ln.reduce((a, k) => a + (k.w.length + 1) * CAP_S * .56, 0), by = CAP_Y + li * CAP_S * 1.13;
+      const bid = `${s.id}-cb${pi}-${li}`;
+      g += `<g id="${bid}" opacity="0"><rect x="${r3(372 - lw - CAPBOX.px)}" y="${r3(by - CAP_S * .84 - CAPBOX.py)}" width="${r3(lw + CAPBOX.px * 2)}" height="${r3(CAP_S * 1.06 + CAPBOX.py * 2)}" rx="${CAPBOX.rx}" fill="${PAPER}"/><rect x="${r3(372 - lw - CAPBOX.px)}" y="${r3(by - CAP_S * .84 - CAPBOX.py)}" width="${r3(lw + CAPBOX.px * 2)}" height="${r3(CAP_S * 1.06 + CAPBOX.py * 2)}" rx="${CAPBOX.rx}" fill="url(#${s.id}-grid)"/></g>`;
+      s.a(`tl.set("#${bid}",{opacity:1},${r3(WT ? WT[wi][0] : t)});`);
       g += `<text x="372" y="${(CAP_Y + li * CAP_S * 1.13).toFixed(1)}" direction="rtl" text-anchor="start" font-family="${HEB}" font-weight="700" font-size="${CAP_S}" fill="${INK}">`;
       ln.forEach(k => {
         const wid = `${s.id}-w${wi++}`, dur = (k.w.length + 1) * per; s.wtok.push({ w: k.w, id: wid });
@@ -765,11 +776,13 @@ function morphs(s) {
   return `<rect id="${id}" x="${r0.x}" y="${r0.y}" width="${r0.width}" height="${r0.height}" rx="${r0.rx}" ry="${r0.ry}" fill="${CARD}" stroke="${INK}" stroke-width="2" opacity="0" data-layout-allow-overlap="true"/>`;
 }
 /* ---------- assemble ---------- */
+const PROP_K = 1.22, PROP_O = 240;   // Guy 2026-11-19: everything bigger — all stage props scaled around (200, PROP_O); per scene: s.propK / s.propO
 function build(s, { hdr, cap, poses, glow, props, drift = [] }) {
   const capSvg = captions(s, cap);
   const propSvg = props(s);
   (s.later || []).forEach(f => f());   // v7: ROLL / TYPE called before their rollNum / typeLine was drawn
   DRIFT(s, drift);
+  poses = poses.map(([t, p]) => [t === 'end' ? r3((s.words.at(-1)?.[1] ?? s.dur - .6) + .03) : t, p]);   // 'end' = right after the last word (a laugh)
   const mkSvg = presenterBlock(s, poses, glow);
   const present = [...new Set([...drift, ...WIGGLY])].filter(n => propSvg.includes(`id="${s.id}-${n}-w"`));
   present.forEach((n, i) => WIGGLE(s, `#${s.id}-${n}-w`, { f: 4 + (i % 3), a: /^(stamp|st\d|t1|t2|chip|k\d)$/.test(n) ? 3.2 : 1.8, p: 1.6 }));
@@ -779,7 +792,7 @@ function build(s, { hdr, cap, poses, glow, props, drift = [] }) {
   const cuts = [0, ...s.cuts, s.dur].sort((a, b) => a - b), gap = Math.max(...cuts.slice(1).map((v, i) => v - cuts[i]));
   if (gap > 1.55) console.warn(`HOLD ${s.id}: ${gap.toFixed(2)}s without a shot change`);
   s.maxHold = gap;
-  return `${paper(s.id)}${s.W('hdr', hdr)}<defs><clipPath id="${s.id}-stc"><rect x="-200" y="${CLIP_Y}" width="800" height="900"/></clipPath></defs><g transform="translate(0 ${STAGE_Y})" clip-path="url(#${s.id}-stc)"><g id="${s.id}-campunch"><g id="${s.id}-shot" transform="matrix(1 0 0 1 0 0)"><g id="${s.id}-cam"><g id="${s.id}-mo">${propSvg}${s.fx}</g></g></g></g>${blob}</g>${mkSvg}${s.W('cap', capSvg + s.capfx)}${s.top}${htWipe(s)}`;
+  return `${paper(s.id)}<g style="display:none">${s.W('hdr', hdr)}</g><defs><clipPath id="${s.id}-stc"><rect x="-200" y="${CLIP_Y}" width="800" height="900"/></clipPath></defs><g transform="translate(0 ${STAGE_Y})" clip-path="url(#${s.id}-stc)"><g id="${s.id}-campunch"><g id="${s.id}-shot" transform="matrix(1 0 0 1 0 0)"><g id="${s.id}-cam"><g id="${s.id}-mo"><g transform="translate(200 ${s.propO ?? PROP_O}) scale(${s.propK ?? PROP_K}) translate(-200 ${-(s.propO ?? PROP_O)})">${propSvg}${s.fx}</g></g></g></g></g>${blob}</g>${mkSvg}${s.W('cap', capSvg + s.capfx)}${s.top}${htWipe(s)}`;
 }
 /* stamp punch: camera kick on a slam */
 const HDRI = (s, left, label, id, val) => `${MT(28, 40, 8.6, left)}<text x="372" y="40" font-family="${MONO}" font-size="8.6" text-anchor="end" fill="${MUTE}" letter-spacing=".6">${esc(label)} <tspan id="${s.id}-${id}" fill="${RED}" font-weight="700">${esc(val)}</tspan></text>`;
@@ -806,6 +819,48 @@ const norm = w => w.toLowerCase().replace(/[^\p{L}\p{N}']/gu, '');   // keeps He
 /* ---------- scenes ---------- */
 const S = [];
 const add = (id, dur, vo, scene, motion, opts, def) => S.push({ id, dur, vo, scene, motion, opts, def });
+/* =====================================================================
+   v8 COLLAGE KIT (Guy, body-receiver 2026-11-19): vintage cut-out photos + constant-motion verbs + crowds.
+   ===================================================================== */
+const CUTDIR = n => fs.existsSync(path.join(ROOT, `assets/vintage/cut-color/${n}.png`)) ? 'cut-color' : 'cut';
+const cut = (s, name, cx, cy, w, { rot = 0 } = {}) => { const f = s.cutf ? '' : (s.cutf = 1, `<defs><filter id="${s.id}-cutf" x="-15%" y="-15%" width="135%" height="135%" color-interpolation-filters="sRGB"><feMorphology in="SourceAlpha" operator="dilate" radius="2.2" result="d"/><feFlood flood-color="#fbfaf7"/><feComposite in2="d" operator="in" result="border"/><feGaussianBlur in="d" stdDeviation="1.6" result="b"/><feOffset in="b" dx="1.6" dy="2.6" result="o"/><feFlood flood-color="#2a2016" flood-opacity=".38"/><feComposite in2="o" operator="in" result="sh"/><feMerge><feMergeNode in="sh"/><feMergeNode in="border"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`);
+  return `${f}<g transform="rotate(${rot} ${cx} ${cy})"><image href="assets/vintage/${CUTDIR(name)}/${name}.png" x="${r3(cx - w / 2)}" y="${r3(cy - w / 2)}" width="${w}" height="${w}" filter="url(#${s.id}-cutf)" data-layout-allow-overlap="true"/></g>`; };
+function BUZZ(s, n, bursts) {   // phone vibration: bursts = [[t, count], …] — short shakes with pauses, varied rhythm
+  const sel = s.q(n); bursts.forEach(([t, c]) => { for (let i = 0; i < c; i++) { const k = i % 2 ? -1 : 1; s.a(`tl.set(${J(sel)},{x:${2.6 * k},rotation:${2.4 * k},transformOrigin:"50% 50%"},${r3(t + i * .04)});`); } s.a(`tl.set(${J(sel)},{x:0,rotation:0},${r3(t + c * .04)});`); });
+}
+const WAVE = (s, n, t, cx, cy, d = .8, a = .55, b = 1.7) => s.a(`tl.fromTo("${s.q(n)}",{scale:${a},opacity:1,svgOrigin:"${cx} ${cy}"},{scale:${b},opacity:0,svgOrigin:"${cx} ${cy}",duration:${d},ease:"power1.out",immediateRender:false},${r3(t)});`);
+const arcPair = (x, y, r, c = GOLD, w = 4) => { const P = a => [r3(x + Math.cos(a) * r), r3(y + Math.sin(a) * r)], A = Math.PI / 180;
+  const [x1, y1] = P(-38 * A), [x2, y2] = P(38 * A), [x3, y3] = P(142 * A), [x4, y4] = P(218 * A);
+  return `<path d="M${x1} ${y1} A${r} ${r} 0 0 1 ${x2} ${y2} M${x3} ${y3} A${r} ${r} 0 0 1 ${x4} ${y4}" stroke="${c}" stroke-width="${w}" fill="none" stroke-linecap="round"/>`; };
+const ring2 = (x, y, r, c, w = 3) => `<circle cx="${x}" cy="${y}" r="${r}" fill="none" stroke="${c}" stroke-width="${w}"/>`;
+function LAUGH(s, n, t0, t1, i = 0) {   // laughing bob: quick squash + tilt, out of phase per person
+  const d = .16 + (i % 3) * .03;
+  s.a(`tl.fromTo("${s.q(n)}-d",{scaleY:1,rotation:${i % 2 ? -3 : 3},transformOrigin:"50% 100%"},{scaleY:.94,rotation:${i % 2 ? 3 : -3},transformOrigin:"50% 100%",duration:${d},ease:"sine.inOut",yoyo:true,repeat:${Math.ceil((t1 - t0) / d)},immediateRender:false},${r3(t0)});`);
+}
+function SHIVER(s, n, t0, t1, a = 3, d = .11) {   // vibrating with small rotations (real heart / brain)
+  s.a(`tl.fromTo("${s.q(n)}-d",{rotation:${-a},transformOrigin:"50% 50%"},{rotation:${a},transformOrigin:"50% 50%",duration:${d},ease:"sine.inOut",yoyo:true,repeat:${Math.ceil((t1 - t0) / d)},immediateRender:false},${r3(t0)});`);
+}
+function SCROLL(s, n, t0, t1, dx, d) { s.a(`tl.fromTo("${s.q(n)}",{x:${-dx}},{x:0,duration:${d},ease:"none",repeat:${Math.ceil((t1 - t0) / d)},immediateRender:false},${r3(t0)});`); }
+const QC = [RED, GOLD, SKY, GREEN, VIOLET, ORANGE];
+/* v8 motion: float (each piece drifts on its own), orbit (small circles), bob, spin-wobble, breathe-scale */
+function FLOAT(s, n, t0, t1, i = 0, a = 5) { const dx = (i % 2 ? 1 : -1) * (a * .7 + (i % 3)), dy = (i % 3 - 1 || 1) * a, d = .7 + (i % 4) * .12; s.a(`tl.fromTo("${s.q(n)}-d",{x:0,y:0},{x:${dx},y:${dy},duration:${d},ease:"sine.inOut",yoyo:true,repeat:${Math.ceil((t1 - t0) / d)},immediateRender:false},${r3(t0)});`); }
+function ORBIT(s, n, t0, t1, r = 8, d = .5, ph = 0) { const N = Math.ceil((t1 - t0) / d); s.a(`tl.fromTo("${s.q(n)}",{x:${-r}},{x:${r},duration:${d},ease:"sine.inOut",yoyo:true,repeat:${N},immediateRender:false},${r3(t0 + ph)});tl.fromTo("${s.q(n)}",{y:${-r}},{y:${r},duration:${d},ease:"sine.inOut",yoyo:true,repeat:${N},immediateRender:false},${r3(t0 + ph + d / 2)});`); }
+function PULSEL(s, n, t0, t1, k = 1.06, d = .2, origin = '50% 50%') { s.a(`tl.fromTo("${s.q(n)}",{scale:1,transformOrigin:"${origin}"},{scale:${k},transformOrigin:"${origin}",duration:${d},ease:"sine.inOut",yoyo:true,repeat:${Math.ceil((t1 - t0) / d)},immediateRender:false},${r3(t0)});`); }
+const bigStamp = (x, y, txt, { c = RED, s = 46, rot = -10, id } = {}) => { const w = txt.length * s * .62 + 40, h = s * 1.5; return `<g transform="translate(${x} ${y}) rotate(${rot})"${id ? ` filter="url(#${id}-grunge)"` : ''}><rect x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}" rx="8" fill="#fff" fill-opacity=".82" stroke="${c}" stroke-width="7"/><rect x="${-w / 2 + 7}" y="${-h / 2 + 7}" width="${w - 14}" height="${h - 14}" rx="4" fill="none" stroke="${c}" stroke-width="2"/>${T(0, s * .36, s, txt, { c, w: 900, f: HEB, ls: 0 })}</g>`; };
+/* crowd layouts — Guy: centred, big, sporadic sizes, max two copies of a person, each copy opposite its twin */
+const CROWD = [[0, 240, 160, 138, 0], [3, 150, 163, 114, 0], [1, 307, 207, 126, 1], [5, 229, 210, 106, 0], [2, 89, 214, 126, 1], [4, 157, 221, 106, 1], [4, 243, 271, 112, 0], [2, 311, 278, 132, 0], [5, 171, 282, 112, 1], [1, 93, 285, 120, 0], [3, 250, 329, 120, 1], [0, 160, 332, 132, 1]];   // Guy 2026-11-19: tighter, bigger, each copy opposite its twin
+const CROWD6 = [[0, 252, 175, 150, 0], [2, 144, 177, 138, 1], [1, 308, 248, 142, 1], [1, 92, 252, 134, 0], [2, 256, 323, 146, 0], [0, 148, 325, 142, 1]];   // 3 people x 2, each copy opposite its twin
+const cutF = (s, name, cx, cy, w, flip, rot = 0) => flip ? `<g transform="translate(${2 * cx} 0) scale(-1 1)">${cut(s, name, cx, cy, w, { rot })}</g>` : cut(s, name, cx, cy, w, { rot });
+const DIRS = ['left', 'right', 'up', 'drop', 'pophard', 'big'];
+function crowd(s, names, t0, step, { laugh = 1, until } = {}) {
+  until = until ?? s.dur;
+  const L = names.length >= 6 ? CROWD : CROWD6; s.crowdN = L.length;   // never more than two copies of a person
+  L.forEach(([k], i) => { IN(s, 'p' + i, t0 + i * step, DIRS[i % 6]); if (laugh) LAUGH(s, 'p' + i, t0 + i * step + .15, until, i); });
+  return L.map(([k, x, y, w, f], i) => s.W('p' + i, cutF(s, names[k], x, y, w, f, (i * 7) % 11 - 5))).join('');
+}
+const SPINR = (s, n, t, from, to, cx, cy, d = .3, ease = 'back.out(1.6)') => s.a(`tl.fromTo("${s.q(n)}",{attr:{transform:"rotate(${from} ${cx} ${cy})"}},{attr:{transform:"rotate(${to} ${cx} ${cy})"},duration:${d},ease:"${ease}",immediateRender:false},${r3(t)});`);
+const RIPPLE = (s, n, t, cx, cy, d = .7) => s.a(`tl.fromTo("${s.q(n)}",{scale:.2,opacity:.9,svgOrigin:"${cx} ${cy}"},{scale:1.5,opacity:0,svgOrigin:"${cx} ${cy}",duration:${d},ease:"power1.out",immediateRender:false},${r3(t)});`);
+
 /* DEMO scenes (spiritual) — a 12s worked example of the kit. Replace them with the new film's scenes. */
 const MESSAGE = 'Breath, energy and the seven chakras: a 12s demo of the kit.';   // one line: what the film says
 const TILE_C = [200, 268, 1.35, -4], CORNER = [52, 512, .5, 6];
@@ -944,4 +999,5 @@ message: "${MESSAGE}"
 - motion: ${f.motion}
 `).join(''));
 fs.writeFileSync(path.join(ROOT, 'build/frames.json'), JSON.stringify(sb, null, 1));
+fs.writeFileSync(path.join(ROOT, 'build/caplines.json'), JSON.stringify([...new Set(CAPLINES)], null, 1));
 console.log('scenes', S.length, 'total', total + 's');
