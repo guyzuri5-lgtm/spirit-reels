@@ -780,7 +780,7 @@ const PROP_K = 1.22, PROP_O = 240;   // Guy 2026-11-19: everything bigger — al
 function build(s, { hdr, cap, poses, glow, props, drift = [] }) {
   const capSvg = captions(s, cap);
   const propSvg = props(s);
-  if (!propSvg.includes('assets/vintage/')) console.warn(`NO CUT-OUT ${s.id}: every scene needs at least one generated vintage cut-out (Guy's rule) — drawn props alone are rejected`);
+  if (!propSvg.includes('assets/vintage/')) console.warn(`NO CUT-OUT ${s.id}: no generated vintage cut-out — fine only for a deliberate drawn-only beat (≈¼ of the film at most, SKILL 3d), otherwise add one`);
   (s.later || []).forEach(f => f());   // v7: ROLL / TYPE called before their rollNum / typeLine was drawn
   DRIFT(s, drift);
   poses = poses.map(([t, p]) => [t === 'end' ? r3((s.words.at(-1)?.[1] ?? s.dur - .6) + .03) : t, p]);   // 'end' = right after the last word (a laugh)
@@ -793,7 +793,7 @@ function build(s, { hdr, cap, poses, glow, props, drift = [] }) {
   const cuts = [0, ...s.cuts, s.dur].sort((a, b) => a - b), gap = Math.max(...cuts.slice(1).map((v, i) => v - cuts[i]));
   if (gap > 1.55) console.warn(`HOLD ${s.id}: ${gap.toFixed(2)}s without a shot change`);
   s.maxHold = gap;
-  return `${paper(s.id)}<g style="display:none">${s.W('hdr', hdr)}</g><defs><clipPath id="${s.id}-stc"><rect x="-200" y="${CLIP_Y}" width="800" height="900"/></clipPath></defs><g transform="translate(0 ${STAGE_Y})" clip-path="url(#${s.id}-stc)"><g id="${s.id}-campunch"><g id="${s.id}-shot" transform="matrix(1 0 0 1 0 0)"><g id="${s.id}-cam"><g id="${s.id}-mo"><g transform="translate(200 ${s.propO ?? PROP_O}) scale(${s.propK ?? PROP_K}) translate(-200 ${-(s.propO ?? PROP_O)})">${propSvg}${s.fx}</g></g></g></g></g>${blob}</g>${mkSvg}${s.W('cap', capSvg + s.capfx)}${s.top}${htWipe(s)}`;
+  return `${paper(s.id)}<g style="display:none">${s.W('hdr', hdr)}</g><defs><clipPath id="${s.id}-stc"><rect x="-200" y="${CLIP_Y}" width="800" height="${s.clipH ?? 900}"/></clipPath></defs><g transform="translate(0 ${STAGE_Y})" clip-path="url(#${s.id}-stc)"><g id="${s.id}-campunch"><g id="${s.id}-shot" transform="matrix(1 0 0 1 0 0)"><g id="${s.id}-cam"><g id="${s.id}-mo"><g transform="translate(200 ${s.propO ?? PROP_O}) scale(${s.propK ?? PROP_K}) translate(-200 ${-(s.propO ?? PROP_O)})">${propSvg}${s.fx}</g></g></g></g></g>${blob}</g>${mkSvg}${s.W('cap', capSvg + s.capfx)}${s.top}${htWipe(s)}`;
 }
 /* stamp punch: camera kick on a slam */
 const HDRI = (s, left, label, id, val) => `${MT(28, 40, 8.6, left)}<text x="372" y="40" font-family="${MONO}" font-size="8.6" text-anchor="end" fill="${MUTE}" letter-spacing=".6">${esc(label)} <tspan id="${s.id}-${id}" fill="${RED}" font-weight="700">${esc(val)}</tspan></text>`;
@@ -862,6 +862,20 @@ function crowd(s, names, t0, step, { laugh = 1, until } = {}) {
 }
 const SPINR = (s, n, t, from, to, cx, cy, d = .3, ease = 'back.out(1.6)') => s.a(`tl.fromTo("${s.q(n)}",{attr:{transform:"rotate(${from} ${cx} ${cy})"}},{attr:{transform:"rotate(${to} ${cx} ${cy})"},duration:${d},ease:"${ease}",immediateRender:false},${r3(t)});`);
 const RIPPLE = (s, n, t, cx, cy, d = .7) => s.a(`tl.fromTo("${s.q(n)}",{scale:.2,opacity:.9,svgOrigin:"${cx} ${cy}"},{scale:1.5,opacity:0,svgOrigin:"${cx} ${cy}",duration:${d},ease:"power1.out",immediateRender:false},${r3(t)});`);
+
+/* ---------- v9 helpers (humming-om, 2026-11-20 — SKILL 3d) ---------- */
+/* R2 scatter over a band of the stage: [x, y, rot, colour, size] — floods without diagonals */
+const HF = (n, y0 = 150, h = 220) => Array.from({ length: n }, (_, i) => [r3(26 + 348 * ((.5 + i * .7548776) % 1)), r3(y0 + h * ((.5 + i * .5698403) % 1)), (i * 29) % 40 - 20, QC[i % 6], 11 + (i * 7) % 11]);
+/* flood timing: slow at first, then a rush */
+const gradual = (i, n, t0, span) => r3(t0 + span * Math.pow(i / n, .8));
+/* Wipes made of the scene's OWN elements (Guy: never unrelated shapes). items = [[x, y, …], …] in screen coords (400×711);
+   draw(item) returns OPAQUE svg. End of scene A: WIPE_IN + s.top += wipeSvg(…); start of scene B: WIPE_OUT with the same items + s.top += wipeSvg(…). */
+const wipeSvg = (s, pre, items, draw) => `<g data-layout-allow-overlap="true">${items.map((it, i) => `<g id="${s.id}-${pre}${i}">${draw(it)}</g>`).join('')}</g>`;
+const WIPE_IN = (s, pre, items, t0, span, dist) => items.forEach((it, i) => s.a(`tl.fromTo("#${s.id}-${pre}${i}",{scale:0,transformOrigin:"50% 50%"},{scale:1,transformOrigin:"50% 50%",duration:.18,ease:"back.out(2)",immediateRender:true},${r3(t0 + Math.min(1, dist(it)) * span + ((i * 7) % 5) * .012)});`));
+const WIPE_OUT = (s, pre, items, t0, span, ox = 200, oy = 356) => items.forEach(([x, y], i) => { const a = Math.atan2(y - oy, x - ox), d = Math.min(1, Math.hypot(x - ox, y - oy) / 420); s.a(`tl.fromTo("#${s.id}-${pre}${i}",{x:0,y:0,scale:1,transformOrigin:"50% 50%"},{x:${r3(Math.cos(a) * 520)},y:${r3(Math.sin(a) * 520)},scale:.4,transformOrigin:"50% 50%",duration:.34,ease:"power2.in",immediateRender:true},${r3(t0 + (1 - d) * span * .5 + ((i * 7) % 5) * .01)});`); });
+/* a hex grid that covers the whole frame, for wipe items: [x, y, k] */
+const WIPEGRID = (dx = 31, dy = 27) => { const o = []; for (let r = 0; r * dy < 740; r++) for (let c = 0; c * dx < 430; c++) o.push([r3(-12 + c * dx + (r % 2) * dx / 2), r3(-12 + r * dy), (r * 3 + c * 5) % 4]); return o; };
+/* s.clipH = 1600 in a scene lets a prop travel through the presenter area (e.g. the monk jumping into the scene) without the stage clip cutting it */
 
 /* ===== SCENES =====
    No demo on purpose (Guy, 2026-11-19): every old drawn-icon example got copied. Write this film's scenes here.

@@ -29,6 +29,7 @@ In the regular chat there is no access to Guy's Mac or the engine repo. Work in 
 | `kit/build/vintage.py` | The vintage cut-out photos (1950s magazine, hand-tinted): reuses the shared image library first, generates only what's missing. See **Images**. |
 | `kit/build/measure-caps.mjs` | Measures every caption line in the real font (headless Chrome) → `build/capw.json`, so each line's paper box fits it. Run between two `gen.mjs` runs. |
 | `kit/build/board.mjs` | Builds the storyboard sheet from one still per shot. |
+| `kit/build/measure-density.mjs` | How busy the film is: objects on screen, image sizes, drawn-only frames, how often new elements enter. Run it before every storyboard and compare with the targets in 3d. |
 | `kit/assets/…`, `package.json`, `hyperframes.json` | Fonts, grain, HyperFrames skeleton (pinned 0.9.59). |
 | `reference/monk/` | His approved sheets (`monk-sheet.jpg`, `monk-full.jpg`), and the scripts that drew the sheets. |
 | `reference/animation-plan.md` | The motion language: frame analysis of Guy's reference reels, the micro-motion layer, morphs, the head rig and the no-frozen-frame rule. |
@@ -164,14 +165,55 @@ These came from eight rounds of Guy's notes; a storyboard that breaks them gets 
 
 **Process** — talk to Guy in Hebrew only. When he asks to see something first (images, a still), show it before rendering. When he says stop, stop at once.
 
+## 3d. Density, transitions and build-ups (from the humming-om notes, 2026-11-20)
+Five more rounds of notes, on `videos/humming-om` (posted 2026-11-20). Its `build/gen.mjs` is the second style reference after body-receiver: read it for wipes, floods, the gun and the cage build-up.
+
+**Density — measure it, don't guess.** The approved reference is body-receiver. Shot length was never the problem: both films cut every ~0.7s. What was different is how much is on screen:
+
+| | body-receiver (target) | humming-om v1 (rejected as "big and quiet") |
+|---|---|---|
+| objects on screen (mean) | ~7.7 | 4.1 |
+| one image, median size | ~13% of the frame | 34% |
+| frames with no photo (drawn only) | ~25% | 8% |
+| new element entering | every ~0.12s | every ~0.24s |
+
+- Mix one hero image with **many small things** around it (crowds, floods, particles, small drawn props, numbers). A single giant image with a couple of overlays gets rejected.
+- **About a quarter of the time is drawn-only** (no photo): a big drawn molecule, a drawn cage, the mini monk. A scene with no cut-out at all is fine when it is one of these beats.
+- **The same image in two scenes at most.** Swap a third appearance for a drawn beat.
+- Before sending a storyboard, run `node build/measure-density.mjs . boards/density.json` and compare it with the table above. It samples every composition in headless Chrome and prints objects per frame, image sizes and how often new elements enter.
+
+**Transitions are built from the scene's own elements.** The things already in the scene keep multiplying until they cover the whole screen, then fly out at the start of the next scene, revealing it. Never use unrelated shapes for a wipe: Guy rejected plain red/white balls "that come from nowhere".
+- Use `WIPE_IN(s, pre, items, t0, span, dist)` + `s.top += wipeSvg(s, pre, items, draw)` at the end of a scene, and `WIPE_OUT(...)` with the same items at the start of the next one.
+- The items must be **opaque**, or the scene shows through.
+- Examples:
+  - The NO molecules flood in from the sides, cover the screen, and fly out into the vessels scene.
+  - The cage bursts, its gold bubbles flood the screen, and they fly out into the next scene.
+
+**Build-ups, not end states.** A scene starts normal and escalates step by step. For example, the cage starts with straight bars, fills bubble by bubble (each one trembling), and only once it is full do the bars stretch outward (tween the path `d`). Then it shakes harder, rocks, and bursts.
+
+**Everything moves, always.** This includes photos of people (SHIVER + FLOAT + a slow PULSEL), UI cards, and hero objects after they land. For a hero object, loop zoom in → hold ~0.5s → zoom out → hold ~0.25s (the singing bowl), or keep it vibrating and swaying (the scroll). Nothing stops once it lands.
+
+**Action scenes = visual overload with physics.**
+- Show the verb literally:
+  - exhaling → visible breath puffs out of the mouth;
+  - fighting germs → a big drawn gun, recognisable at a glance, spraying bullets that recoil with every shot, with muzzle flashes and flying casings.
+- Hits throw particles (a white X in a red circle) that pop up and fall with gravity.
+- Placement is scattered and random-looking: never a neat order such as a spiral.
+
+**Numbers are big and overlap their subject:** the BPM partly covers the heart, the years sit on the scroll, the graph partly covers the person. They are not small labels floating beside the subject.
+
+**Presenter moves are continuous.** When the monk leaves his spot (e.g. jumps into the scene to sit cross-legged), swap the presenter for `miniMonk` in the same frame at the same place and size. Don't crossfade (it leaves a ghost). Set `s.clipH = 1600` in that scene so the stage clip doesn't cut him on the way.
+
 ## 4. Order of work (each step waits for Guy)
 1. **The text.**
    - From Guy's text: turn it into short, spoken, everyday Hebrew (not written-formal), about 45–60s, one sentence per scene (1.5–5s each). Write the narration without niqqud, but spell out any word the voice might misread.
+   - **Address the viewers in second person plural** (Guy, 2026-11-20): אתם, נשמתם, תנשמו, תחשבו, נסו, שלכם. Never the singular אתה / נסה / תחשוב / שלך. Convert every singular "you" in Guy's text, including verbs, imperatives and possessives.
    - Keep his points and his order.
    - The project is `videos/<slug>/` **inside the spirit-reels repo** (never in creatora), made with `cp -R .claude/skills/monk-spiritual-video/kit/. videos/<slug>/`. Write a `BRIEF.md` with the script.
 2. **Scenes in `build/gen.mjs`.**
-   - Write the scenes in the `SCENES` block. **Read `videos/body-receiver/build/gen.mjs` first** and build in that style; never in the old drawn-icon style.
-   - **Every scene needs at least one generated vintage cut-out** (`cut()`); gen.mjs warns `NO CUT-OUT sNN` otherwise, and `MISSING CUT-OUT name` when an image isn't in the project yet (run `python3 build/vintage.py <names>`).
+   - Write the scenes in the `SCENES` block. **Read `videos/body-receiver/build/gen.mjs` and `videos/humming-om/build/gen.mjs` first** and build in that style (wipes, floods, build-ups, the gun, the cage); never in the old drawn-icon style. Helpers for this are in the kit: `HF`, `gradual`, `WIPE_IN` / `WIPE_OUT` / `wipeSvg` / `WIPEGRID`, `s.clipH`.
+   - **Almost every scene has at least one generated vintage cut-out** (`cut()`). gen.mjs warns `NO CUT-OUT sNN` for a scene without one. That is fine only for a deliberate drawn-only beat (see 3d), about a quarter of the film at most; otherwise add a cut-out. It also warns `MISSING CUT-OUT name` when an image isn't in the project yet (run `python3 build/vintage.py <names>`).
+   - Plan the density from 3d up front: a hero image plus many small elements, two or three floods or crowds, the wipes between acts, and every number big.
    - Keep `TILE_C`/`CORNER`/`tileFly` if you use the number-tile corner badge.
    - Morphs are per film: add entries to `MORPHS` (the template empties it).
    - `node build/gen.mjs` must end with no `HOLD`.
@@ -204,6 +246,10 @@ These came from eight rounds of Guy's notes; a storyboard that breaks them gets 
      - `ffmpeg -i assets/vo/take.mp3 -filter:a atempo=<VO_SPEED> assets/vo/narration.mp3`
      - Hebrew transcript: `npx --yes hyperframes@0.9.59 transcribe assets/vo/take.mp3 --engine whisper --model large-v3 --language he --json` (the default `small.en` turns Hebrew into English nonsense). It writes `assets/vo/transcript.json`; save its `[{text,start,end}]` as `assets/vo/take.transcript.json`, and fix misheard words to the script's words (the first word of every scene must match, e.g. נו → תנו).
      - Laughs or re-voiced phrases spliced in: shift the later word times by the inserted length.
+       - The approved short rolling laugh is `videos/body-receiver/assets/vo/laugh-cut.wav` (1.2s). Reuse it instead of paying for a new one.
+     - Fitting to the voice can squeeze a beat that needs time (e.g. one word, "אום", came out at 0.8s; the cage build-up shrank to 1.7s). Insert a short silence after that word in the take (0.4–0.8s) and shift the later word times.
+     - Generate through the ElevenLabs connector (`creative_generate_speech`, `generations_count: 1`). Price it first with `estimate_only: true`: a ~50s take was ~700 credits. Show Guy the price before generating.
+     - Whisper mishears Hebrew words that the voice says correctly ("תחמוץ את" for תחמוצת, "פס אגור" for פה סגור). It also drops short words, such as את, and long hums. Align by meaning: re-insert missing words with estimated times, and find hums with an `astats` RMS scan.
      - `node build/gen.mjs`, which fits scenes and captions to the real speech
    - Fix any `vo align failed` or hold > 1.6 with a `CAMTO`. (The word matcher keeps Hebrew letters, so Hebrew transcripts align.)
 6. **Sound.** The music is Guy's pick, **Sitar Radiance** (Pixabay, free, no attribution). Copy `spirit-reels/assets/music-options/6-sitar-radiance.mp3` to the project's `assets/music/sitar-radiance.mp3`, and gen.mjs adds it under the voice at `MUSIC_VOL` 0.47 (≈ -22 LUFS, clearly audible, the voice on top). Don't run the media-use carve on it: its level lane buried the bed by 19 dB and Guy couldn't hear the music. For a different track, ask Guy first. He wants sitar in the "Shanti of Sitar" spirit, with a pulse (tabla). SFX on pops and slams stay gentle.
@@ -217,6 +263,9 @@ These came from eight rounds of Guy's notes; a storyboard that breaks them gets 
 - **Fonts:** bundled woff2 only. Hebrew uses Rubik (`HEB`, weights 700/800/900, in `kit/assets/fonts`); `SANS` falls back to Rubik, so Hebrew in `T()` still renders. Use `hchip()` for Hebrew label pills. Captions are `direction="rtl"` anchored at x=372.
 - **Safe zone:** keep text away from the right-side button rail.
 - **CAMTO and the presenter:** `CAMTO(s,t,cx,cy,k)` puts `(cx,cy)` at (200,290), so a low `cy` pushes everything down onto the monk. Keep stage content above y≈340 after the zoom.
+- **Props are scaled by `PROP_K` 1.22 around x=200:** a prop at x is drawn at `200 + (x−200)·1.22`. Anything past x≈345 (or below x≈55) ends up off screen, and a zoomed CAMTO crops more. Check numbers and right-side objects in a still.
+- **One unclosed `<g>` in a scene's markup puts the presenter inside the stage clip,** so he gets cut at y≈530. If the monk suddenly looks cut off in one scene, count the tags in what you just wrote. Wrap anything you animate with `s.W(n, …)` and drive recoil/jitter on its `-d` layer.
+- **Instagram's limit is 95MB.** A 55s render at crf 23 came out at 98MB; re-encode at crf 25 (`-preset slow`), which gave ~67MB.
 
 ## 6. After every change
 - Keep the film's own `STORYBOARD.md` current.
