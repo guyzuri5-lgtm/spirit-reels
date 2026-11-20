@@ -1,9 +1,17 @@
 {
-  "time": "2026-11-19T23:27:06+00:00",
-  "mode": "schedule",
+  "time": "2026-11-20T13:46:51+00:00",
+  "mode": "push",
   "ok": true,
-  "note": "nothing to post",
+  "item": "20261120-134548",
+  "media_id": "17896889475653874",
+  "permalink": "https://www.instagram.com/reel/Df9y-DriUnq/",
+  "facebook": null,
+  "remove": "20261120-134548",
   "log_tail": [
-    "nothing to post"
+    "token ok for @master__spirit via https://graph.facebook.com",
+    "uploaded: {'success': True, 'message': 'Upload Successful.'}",
+    "status: IN_PROGRESS In Progress: Media is still being processed.",
+    "status: FINISHED Finished: Media has been uploaded and it is ready to be published.",
+    "POSTED 20261120-134548: https://www.instagram.com/reel/Df9y-DriUnq/"
   ]
 }
