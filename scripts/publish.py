@@ -90,7 +90,15 @@ def publish(host, video, caption, public_url, cover_url=None):
     size = video.stat().st_size
     container = None
     try:  # 1) resumable upload of the local file (Facebook-login style tokens)
-        c = http("POST", f"{host}/{VER}/{uid}/media", {"media_type": "REELS", "upload_type": "resumable", "caption": caption, "share_to_feed": "true", **({"cover_url": cover_url} if cover_url else {})})
+        base = {"media_type": "REELS", "upload_type": "resumable", "caption": caption, "share_to_feed": "true"}
+        try:
+            c = http("POST", f"{host}/{VER}/{uid}/media", {**base, **({"cover_url": cover_url} if cover_url else {})})
+        except Exception as e:  # noqa: BLE001  (a bad cover must never stop the post)
+            if not cover_url:
+                raise
+            log("container with cover failed, posting without it:", e)
+            cover_url = None
+            c = http("POST", f"{host}/{VER}/{uid}/media", base)
         container = c["id"]
         up = http("POST", f"https://rupload.facebook.com/ig-api-upload/{VER}/{container}", data=video.read_bytes(),
                   headers={"Authorization": f"OAuth {TOKEN}", "offset": "0", "file_size": str(size)}, timeout=600)
