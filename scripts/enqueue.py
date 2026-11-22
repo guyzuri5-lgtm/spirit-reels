@@ -2,6 +2,7 @@
 """Add a finished video (or a gouache spec) to the posting queue.
 
     python3 scripts/enqueue.py VIDEO.mp4 --caption "..." --tags "רוחניות,נשימה" [--now] [--id 2026-11-02-a] [--not-before 2026-11-03T08:00:00Z]
+    python3 scripts/enqueue.py VIDEO.mp4 --cover cover.jpg --caption "..."   (feed cover, see scripts/make_cover.py)
     python3 scripts/enqueue.py SPEC.json --caption "..." ...         (rendered by the publisher before posting)
 
 The queue lives on the `queue` branch: queue/<id>/{video.mp4|spec.json, meta.json}.
@@ -20,6 +21,20 @@ def git(*a, cwd):
     return subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True, text=True).stdout.strip()
 
 
+def upload_cover(path):
+    """Instagram takes a reel cover only as a public URL (cover_url), and this repo is private,
+    so the JPEG goes to fal's public CDN (fal key from ~/.config/talking-head-to-ae/keys.json or FAL_KEY)."""
+    import os, urllib.request
+    key = os.environ.get("FAL_KEY") or json.loads((pathlib.Path.home() / ".config/talking-head-to-ae/keys.json").read_text())["fal"]
+    req = urllib.request.Request("https://rest.alpha.fal.ai/storage/upload/initiate?storage_type=fal-cdn-v3",
+                                 data=json.dumps({"content_type": "image/jpeg", "file_name": "cover.jpg"}).encode(),
+                                 headers={"Authorization": "Key " + key, "Content-Type": "application/json"}, method="POST")
+    r = json.load(urllib.request.urlopen(req, timeout=60))
+    urllib.request.urlopen(urllib.request.Request(r["upload_url"], data=pathlib.Path(path).read_bytes(),
+                                                  headers={"Content-Type": "image/jpeg"}, method="PUT"), timeout=120)
+    return r["file_url"]
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("source")
@@ -28,6 +43,8 @@ def main():
     ap.add_argument("--now", action="store_true")
     ap.add_argument("--id", default=None)
     ap.add_argument("--not-before", default=None)
+    ap.add_argument("--cover", default=None, help="cover JPEG from scripts/make_cover.py (monk reels always pass one)")
+    ap.add_argument("--cover-style", default=None, help="A-F, logged so the next cover can pick a different style")
     ap.add_argument("--platforms", default=None, help="comma list, default all: instagram,facebook")
     a = ap.parse_args()
     src = pathlib.Path(a.source)
@@ -41,10 +58,20 @@ def main():
         print("video:", probe, f"{mb:.1f}MB")
     elif src.suffix.lower() != ".json":
         sys.exit("source must be .mp4 or a .json spec")
+    cover = pathlib.Path(a.cover) if a.cover else None
+    if cover and not cover.exists():
+        sys.exit(f"cover not found: {cover}")
+    if not cover:
+        print("WARNING: no --cover; Instagram will pick a frame for the feed cover")
     item_id = a.id or dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
     meta = {"caption": a.caption, "hashtags": [t.strip() for t in a.tags.split(",") if t.strip()], "post_now": a.now, "added_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")}
     if a.not_before:
         meta["not_before"] = a.not_before
+    if cover:
+        meta["cover_url"] = upload_cover(cover)
+        if a.cover_style:
+            meta["cover_style"] = a.cover_style
+        print("cover:", meta["cover_url"])
     if a.platforms:
         meta["platforms"] = [p.strip() for p in a.platforms.split(",") if p.strip()]
     for attempt in range(3):
@@ -66,6 +93,8 @@ def main():
             sys.exit(f"item {item_id} already queued")
         d.mkdir(parents=True)
         shutil.copy(src, d / ("video.mp4" if src.suffix.lower() == ".mp4" else "spec.json"))
+        if cover:
+            shutil.copy(cover, d / "cover.jpg")
         (d / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2))
         git("add", "-A", cwd=q)
         git("-c", "user.name=spirit-reels", "-c", "user.email=noreply@anthropic.com", "commit", "-qm", f"queue: add {item_id}" + (" (post now)" if a.now else ""), cwd=q)

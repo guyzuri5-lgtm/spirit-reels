@@ -253,7 +253,26 @@ Five more rounds of notes, on `videos/humming-om` (posted 2026-11-20). Its `buil
      - `node build/gen.mjs`, which fits scenes and captions to the real speech
    - Fix any `vo align failed` or hold > 1.6 with a `CAMTO`. (The word matcher keeps Hebrew letters, so Hebrew transcripts align.)
 6. **Sound.** The music is Guy's pick, **Sitar Radiance** (Pixabay, free, no attribution). Copy `spirit-reels/assets/music-options/6-sitar-radiance.mp3` to the project's `assets/music/sitar-radiance.mp3`, and gen.mjs adds it under the voice at `MUSIC_VOL` 0.47 (≈ -22 LUFS, clearly audible, the voice on top). Don't run the media-use carve on it: its level lane buried the bed by 19 dB and Guy couldn't hear the music. For a different track, ask Guy first. He wants sitar in the "Shanti of Sitar" spirit, with a pulse (tabla). SFX on pops and slams stay gentle.
-7. **Final render + caption.** Render `renders/<slug>-v1-voice.mp4` and send the preview. After Guy approves, post it through the page's queue: `python3 scripts/enqueue.py videos/<slug>/renders/<slug>-v1-voice.mp4 --caption "..." --tags "נשימה,מדיטציה,רוחניות"` (rules in the repo's CLAUDE.md). Write a Hebrew post caption with a hook, the idea, one practice and a question, plus hashtags such as נשימה, מדיטציה, מודעות, צאקרות, רוחניות (and a few English ones like breathwork, meditation).
+7. **Final render + caption + cover.** Render `renders/<slug>-v1-voice.mp4` and send the preview. After Guy approves, make the cover (section 4b) and post both through the page's queue: `python3 scripts/enqueue.py videos/<slug>/renders/<slug>-v1-voice.mp4 --cover videos/<slug>/renders/cover.jpg --cover-style X --caption "..." --tags "נשימה,מדיטציה,רוחניות"` (rules in the repo's CLAUDE.md). **Every monk reel goes up with a cover**; never enqueue without `--cover`. Write a Hebrew post caption with a hook, the idea, one practice and a question, plus hashtags such as נשימה, מדיטציה, מודעות, צאקרות, רוחניות (and a few English ones like breathwork, meditation).
+
+## 4b. The feed cover (Guy, 2026-11-22)
+
+Every reel gets its own cover: **the monk's opening pose at the bottom** (frame 0 of the final video) and **a Hebrew title above him**, inside the 3:4 grid crop. Guy approved all six styles (samples: `samples/cover-options/`) and wants **a different style each time, chosen by what the title says**:
+
+| Style | When | Example |
+|---|---|---|
+| **A** big black headline, key word red | a plain claim or surprising hook (default) | צליל אחד / שמעלה *פי 15* / את מה / שהגוף צריך |
+| **B** dark tilted card with tape | a list, rule, lesson, "X things" | ^7^ טבעות / השריון / שהגוף בונה |
+| **C** huge red number | the title hangs on one number (7 gates, 4 seconds, 1 breath) | `--kicker "יש בגוף" --num 7 --title "שערים" --sub "ואחד מהם אולי סגור"` |
+| **D** speech bubble from the monk | a quote, dialogue, joke, provocation, rhetorical question | וויי-פיי? _סומכים._ / אנרגיה? / *"הזוי"* 😂 |
+| **E** gold marker behind the lines + small sub line | a definition / reframe, "X is Y" | הגוף שלכם / הוא מקלט + `--sub` |
+| **F** serif headline + red pill | a practice, exercise, invitation to try | `--kicker "ניסוי של 10 שניות"` זמזום אחד / שהגוף שלכם / מחכה לו |
+
+- When two styles fit, pick the one **not used in the last two posts** (check `cover_style` in the newest `posted/*.json` / the last BRIEFs), so the grid stays varied.
+- The title is a short hook (2–5 words per line, 2–4 lines), not the caption. Plural you (אתם). Mark one key word: `*red*`, `_green_` or `^gold^`.
+- `python3 scripts/make_cover.py --style X --title "line|line" [--kicker ..] [--sub ..] [--num ..] --video videos/<slug>/renders/<final>.mp4 --out videos/<slug>/renders/cover.jpg` (text auto-shrinks to fit; if frame 0 has no monk at the bottom, pass `--at <sec>` or `--bg assets/cover/monk-default.png`).
+- Look at the cover (Read the jpg) before enqueueing, and write `cover style: X, title: ...` into the BRIEF. No separate approval: it goes up with the approved video, and Guy can ask for a change afterwards.
+- `enqueue.py --cover` uploads the JPEG to fal's public CDN (Instagram takes the cover only as `cover_url`) and copies it into the queue item for the Facebook thumbnail.
 
 ## 5. HyperFrames / GSAP gotchas
 - **Seek-safe:** `fromTo` + `immediateRender:false`, no `Math.random`, no `repeat:-1`.

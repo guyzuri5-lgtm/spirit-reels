@@ -15,6 +15,7 @@ This repo is the *technical pipeline only*. How the videos look and what they sa
 ```
 python3 scripts/enqueue.py path/to/video.mp4 --caption "כיתוב לפוסט" --tags "רוחניות,נשימה,מודעות"
 python3 scripts/enqueue.py path/to/video.mp4 --caption "..." --now        # post right away
+python3 scripts/enqueue.py path/to/video.mp4 --cover cover.jpg --caption "..."   # with a feed cover (monk reels: always; scripts/make_cover.py)
 python3 scripts/enqueue.py samples/breath.json --caption "..."            # a gouache-engine spec, rendered in CI
 ```
 Video requirements: vertical 9:16 (1080x1920), H.264 video + AAC audio, 3–90 seconds, under 95 MB

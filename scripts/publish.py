@@ -4,6 +4,7 @@
 Queue layout (on the `queue` branch, checked out at --queue):
     queue/<id>/video.mp4    the finished vertical video (H.264/AAC, 9:16)   -- or --
     queue/<id>/spec.json    a gouache-engine spec, rendered here first
+    queue/<id>/cover.jpg    optional feed cover (Facebook thumbnail; Instagram gets meta.cover_url)
     queue/<id>/meta.json    {"caption": "...", "hashtags": ["..."], "post_now": false, "not_before": "2026-11-05T08:00:00Z"}
 Items are posted oldest-first by folder name. Stdlib only.
 """
@@ -84,19 +85,19 @@ def build_caption(meta):
     return (cap + ("\n\n" + tags if tags else "")).strip()[:2200]
 
 
-def publish(host, video, caption, public_url):
+def publish(host, video, caption, public_url, cover_url=None):
     uid = CFG["ig_user_id"]
     size = video.stat().st_size
     container = None
     try:  # 1) resumable upload of the local file (Facebook-login style tokens)
-        c = http("POST", f"{host}/{VER}/{uid}/media", {"media_type": "REELS", "upload_type": "resumable", "caption": caption, "share_to_feed": "true"})
+        c = http("POST", f"{host}/{VER}/{uid}/media", {"media_type": "REELS", "upload_type": "resumable", "caption": caption, "share_to_feed": "true", **({"cover_url": cover_url} if cover_url else {})})
         container = c["id"]
         up = http("POST", f"https://rupload.facebook.com/ig-api-upload/{VER}/{container}", data=video.read_bytes(),
                   headers={"Authorization": f"OAuth {TOKEN}", "offset": "0", "file_size": str(size)}, timeout=600)
         log("uploaded:", up)
     except Exception as e:  # noqa: BLE001
         log("resumable upload failed, falling back to video_url:", e)
-        container = http("POST", f"{host}/{VER}/{uid}/media", {"media_type": "REELS", "video_url": public_url, "caption": caption, "share_to_feed": "true"})["id"]
+        container = http("POST", f"{host}/{VER}/{uid}/media", {"media_type": "REELS", "video_url": public_url, "caption": caption, "share_to_feed": "true", **({"cover_url": cover_url} if cover_url else {})})["id"]
     for _ in range(90):  # wait for Instagram to process (up to ~15 min)
         st = http("GET", f"{host}/{VER}/{container}", {"fields": "status_code,status"})
         log("status:", st.get("status_code"), st.get("status", ""))
@@ -115,7 +116,15 @@ def publish(host, video, caption, public_url):
     return media_id, link
 
 
-def publish_facebook(video, caption):
+def set_fb_thumbnail(host, vid, jpg, tok):
+    b = "----spiritreels" + str(int(time.time()))
+    body = (f"--{b}\r\nContent-Disposition: form-data; name=\"is_preferred\"\r\n\r\ntrue\r\n"
+            f"--{b}\r\nContent-Disposition: form-data; name=\"source\"; filename=\"cover.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n").encode() + jpg.read_bytes() + f"\r\n--{b}--\r\n".encode()
+    return http("POST", f"{host}/{VER}/{vid}/thumbnails", {"access_token": tok}, data=body,
+                headers={"Content-Type": f"multipart/form-data; boundary={b}"})
+
+
+def publish_facebook(video, caption, cover=None):
     """Post the same video as a Reel on the Facebook Page (optional; needs FB_ACCESS_TOKEN + fb_page_id)."""
     pid = CFG.get("fb_page_id")
     if not (FB_TOKEN and pid):
@@ -132,6 +141,11 @@ def publish_facebook(video, caption):
     vid = start["video_id"]
     http("POST", f"https://rupload.facebook.com/video-upload/{VER}/{vid}", data=video.read_bytes(),
          headers={"Authorization": f"OAuth {ptok}", "offset": "0", "file_size": str(video.stat().st_size)}, timeout=600)
+    if cover and cover.exists():
+        try:
+            log("facebook thumbnail:", set_fb_thumbnail(host, vid, cover, ptok))
+        except Exception as e:  # noqa: BLE001  (a missing thumbnail must not stop the post)
+            log("facebook thumbnail failed:", e)
     http("POST", f"{host}/{VER}/{pid}/video_reels", {"upload_phase": "finish", "video_id": vid, "video_state": "PUBLISHED", "description": caption, "access_token": ptok})
     for _ in range(60):
         st = http("GET", f"{host}/{VER}/{vid}", {"fields": "status,permalink_url", "access_token": ptok})
@@ -175,12 +189,12 @@ def main():
         if "instagram" in plats:
             host = detect_host()
             public_url = f"https://raw.githubusercontent.com/{CFG['repo']}/{CFG['queue_branch']}/queue/{item.name}/video.mp4"
-            media_id, link = publish(host, video, build_caption(meta), public_url)
+            media_id, link = publish(host, video, build_caption(meta), public_url, meta.get("cover_url"))
         res.update(ok=True, media_id=media_id, permalink=link)
         fb = None
         if "facebook" in plats:
             try:
-                fb = publish_facebook(video, build_caption(meta))
+                fb = publish_facebook(video, build_caption(meta), item / "cover.jpg")
                 if fb:
                     log(f"FACEBOOK {item.name}: {fb.get('permalink') or fb.get('video_id')}")
             except Exception as e:  # noqa: BLE001  (Instagram already posted: record, don't fail the item)
