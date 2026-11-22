@@ -278,6 +278,7 @@ Every reel gets its own cover: **the monk's opening pose at the bottom** (frame 
 - **Seek-safe:** `fromTo` + `immediateRender:false`, no `Math.random`, no `repeat:-1`.
 - **Camera:** the matrix camera (`CAMTO`).
 - **Morph blob:** it lives outside the camera.
+- **Don't mix `svgOrigin` with `x`/`y` in one tween** on a `<g>` (the element vanished in everyone-for-reason v2). To move + scale a group, tween `attr:{transform:"matrix(k 0 0 k tx ty)"}` instead, like `CAMTO`.
 - **Grain:** a single PNG layer.
 - **Fonts:** bundled woff2 only. Hebrew uses Rubik (`HEB`, weights 700/800/900, in `kit/assets/fonts`); `SANS` falls back to Rubik, so Hebrew in `T()` still renders. Use `hchip()` for Hebrew label pills. Captions are `direction="rtl"` anchored at x=372.
 - **Safe zone:** keep text away from the right-side button rail.
